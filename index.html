@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Book Discovery - Find Your Next Read</title>
+    <link rel="stylesheet" href="styles/main.css">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Arial:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <header>
+        <nav class="navbar">
+            <div class="logo">
+                <h1>Book Discovery</h1>
+            </div>
+            <div class="nav-links">
+                <a href="#" class="active">Home</a>
+                <a href="#favorites">Favorites</a>
+                <button id="theme-toggle" aria-label="Toggle dark mode">
+                    <i class="fas fa-moon"></i>
+                </button>
+            </div>
+        </nav>
+    </header>
+
+    <main>
+        <section class="search-section">
+            <div class="search-container">
+                <form id="search-form">
+                    <input type="text" id="search-input" placeholder="Search for books...">
+                    <select id="genre-select">
+                        <option value="all">All Genres</option>
+                    </select>
+                    <button type="submit" id="search-button">Search</button>
+                    <button type="button" id="random-button">Random Book</button>
+                </form>
+            </div>
+        </section>
+
+        <section class="sort-section">
+            <div class="sort-container">
+                <label for="sort-select">Sort by:</label>
+                <select id="sort-select">
+                    <option value="relevance">Relevance</option>
+                    <option value="newest">Newest</option>
+                    <option value="rating">Rating</option>
+                </select>
+            </div>
+        </section>
+
+        <section class="books-grid" id="books-container">
+            <!-- Books will be dynamically added here -->
+        </section>
+
+        <div id="loading-spinner" class="hidden">
+            <div class="spinner"></div>
+        </div>
+
+        <div id="error-message" class="hidden">
+            <p>Sorry, something went wrong. Please try again later.</p>
+        </div>
+    </main>
+
+    <!-- Book Details Modal -->
+    <div id="book-modal" class="modal hidden">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <div class="book-details">
+                <div class="book-cover">
+                    <img id="modal-cover" src="" alt="Book cover">
+                </div>
+                <div class="book-info">
+                    <h2 id="modal-title"></h2>
+                    <p id="modal-author"></p>
+                    <div class="rating">
+                        <div class="stars" id="modal-rating"></div>
+                        <button id="add-review">Add Review</button>
+                    </div>
+                    <p id="modal-description"></p>
+                    <button id="add-to-favorites" class="favorite-btn">
+                        <i class="far fa-heart"></i> Add to Favorites
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Review Form Modal -->
+    <div id="review-modal" class="modal hidden">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <h2>Add Your Review</h2>
+            <form id="review-form">
+                <div class="star-rating">
+                    <span class="star" data-rating="1">★</span>
+                    <span class="star" data-rating="2">★</span>
+                    <span class="star" data-rating="3">★</span>
+                    <span class="star" data-rating="4">★</span>
+                    <span class="star" data-rating="5">★</span>
+                </div>
+                <textarea id="review-text" placeholder="Write your review here..."></textarea>
+                <button type="submit">Submit Review</button>
+            </form>
+        </div>
+    </div>
+
+    <footer>
+        <p>&copy; 2024 Book Discovery. All rights reserved.</p>
+    </footer>
+
+    <script src="js/api.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
