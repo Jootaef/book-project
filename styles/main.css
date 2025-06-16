@@ -134,8 +134,7 @@ body {
 
 #genre-select:focus {
     outline: none;
-    border-color: var(--accent-color);
-    box-shadow: 0 0 0 2px var(--accent-color-light);
+    border-color: var(--accent-color-light);
 }
 
 #modal-genres {
@@ -183,11 +182,14 @@ button:hover {
     border-radius: 8px;
     overflow: hidden;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    transition: transform 0.3s;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    position: relative;
+    perspective: 1000px;
 }
 
 .book-card:hover {
     transform: translateY(-5px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
 }
 
 .book-cover img {
@@ -217,6 +219,7 @@ button:hover {
     justify-content: center;
     align-items: center;
     z-index: 1000;
+    animation: modalFadeIn 0.3s ease-out;
 }
 
 .modal.hidden {
@@ -254,11 +257,12 @@ button:hover {
 
 .star {
     cursor: pointer;
-    transition: color 0.3s;
+    transition: transform 0.2s ease, color 0.2s ease;
 }
 
 .star:hover {
-    color: #ffed4a;
+    transform: scale(1.2);
+    color: var(--accent-color);
 }
 
 /* Loading Spinner */
@@ -316,4 +320,250 @@ button:hover {
     margin: 1rem;
     border-radius: 4px;
     text-align: center;
+}
+
+/* Additional Information Styles */
+.additional-info-container {
+    margin-top: 2rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--border-color);
+}
+
+.additional-info,
+.author-info {
+    margin-bottom: 2rem;
+    padding: 1.5rem;
+    background-color: var(--card-background);
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.additional-info h3,
+.author-info h3 {
+    color: var(--primary-color);
+    margin-bottom: 1rem;
+    font-size: 1.2rem;
+    font-weight: 600;
+}
+
+.additional-info p,
+.author-info p {
+    margin: 0.5rem 0;
+    line-height: 1.6;
+    color: var(--text-color);
+}
+
+.additional-info strong,
+.author-info strong {
+    color: var(--primary-color);
+    font-weight: 600;
+}
+
+/* Loading Animation for Enhanced Data */
+.book-details.loading {
+    position: relative;
+    min-height: 200px;
+}
+
+.book-details.loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 40px;
+    height: 40px;
+    border: 4px solid var(--border-color);
+    border-top-color: var(--primary-color);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: translate(-50%, -50%) rotate(360deg);
+    }
+}
+
+/* Responsive Design for Additional Info */
+@media (max-width: 768px) {
+    .additional-info,
+    .author-info {
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .additional-info h3,
+    .author-info h3 {
+        font-size: 1.1rem;
+    }
+
+    .additional-info p,
+    .author-info p {
+        font-size: 0.9rem;
+    }
+}
+
+/* Book Card Animations and Effects */
+.book-card .book-cover {
+    transition: transform 0.6s;
+    transform-style: preserve-3d;
+}
+
+.book-card:hover .book-cover {
+    transform: rotateY(180deg);
+}
+
+.book-card .book-info {
+    backface-visibility: hidden;
+    transition: opacity 0.3s ease;
+}
+
+/* Loading Animation */
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+.loading-spinner {
+    animation: pulse 1.5s infinite ease-in-out;
+}
+
+/* Modal Animations */
+@keyframes modalFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Genre Tag Hover Effect */
+.genre-tag {
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.genre-tag::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background-color: var(--accent-color);
+    transform: scaleX(0);
+    transition: transform 0.3s ease;
+}
+
+.genre-tag:hover::after {
+    transform: scaleX(1);
+}
+
+/* Search Bar Animation */
+.search-container input {
+    transition: all 0.3s ease;
+}
+
+.search-container input:focus {
+    transform: scale(1.02);
+    box-shadow: 0 0 15px rgba(var(--primary-color-rgb), 0.2);
+}
+
+/* Theme Toggle Animation */
+#theme-toggle {
+    transition: transform 0.5s ease;
+}
+
+#theme-toggle:hover {
+    transform: rotate(180deg);
+}
+
+/* Book Details Flip Card */
+.book-details-card {
+    perspective: 1000px;
+    transition: transform 0.6s;
+    transform-style: preserve-3d;
+}
+
+.book-details-card.flipped {
+    transform: rotateY(180deg);
+}
+
+/* Recommendation Section Animation */
+.recommendations-section {
+    opacity: 0;
+    transform: translateY(20px);
+    transition: all 0.5s ease;
+}
+
+.recommendations-section.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Author Info Card Hover Effect */
+.author-info {
+    transition: all 0.3s ease;
+}
+
+.author-info:hover {
+    transform: translateX(10px);
+    box-shadow: -5px 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+/* Edition List Animation */
+.edition-list {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.5s ease;
+}
+
+.edition-list.expanded {
+    max-height: 500px;
+}
+
+/* Review Form Animation */
+.review-form {
+    transform-origin: top;
+    transition: transform 0.3s ease;
+}
+
+.review-form.hidden {
+    transform: scaleY(0);
+}
+
+.review-form.visible {
+    transform: scaleY(1);
+}
+
+/* Error Message Animation */
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+}
+
+.error-message {
+    animation: shake 0.5s ease-in-out;
+}
+
+/* Responsive Animations */
+@media (max-width: 768px) {
+    .book-card:hover {
+        transform: none;
+    }
+    
+    .book-card .book-cover:hover {
+        transform: none;
+    }
+    
+    .author-info:hover {
+        transform: none;
+    }
 } 

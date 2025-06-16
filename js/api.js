@@ -45,6 +45,7 @@ class BookAPI {
             'Sports',
             'Education'
         ];
+        this.openLibraryAPI = new OpenLibraryAPI();
     }
 
     async searchBooks(query, genre = '') {
@@ -176,5 +177,229 @@ class BookAPI {
                 previewLink: volumeInfo.previewLink || '#'
             };
         });
+    }
+
+    async getEnhancedBookDetails(bookId) {
+        try {
+            // Get data from Google Books API
+            const googleBookData = await this.getBookDetails(bookId);
+            
+            // Try to get ISBN from Google Books data
+            const isbn = googleBookData.isbn || 
+                        googleBookData.industryIdentifiers?.find(id => id.type === 'ISBN_13')?.identifier ||
+                        googleBookData.industryIdentifiers?.find(id => id.type === 'ISBN_10')?.identifier;
+
+            let openLibraryData = null;
+            if (isbn) {
+                // Get additional data from Open Library
+                openLibraryData = await this.openLibraryAPI.getBookDetails(isbn);
+            }
+
+            // Combine data from both APIs
+            return {
+                ...googleBookData,
+                openLibrary: openLibraryData,
+                enhancedCover: isbn ? this.openLibraryAPI.getCoverUrl(isbn, 'L') : null,
+                hasOpenLibraryData: !!openLibraryData
+            };
+        } catch (error) {
+            console.error('Error getting enhanced book details:', error);
+            throw error;
+        }
+    }
+
+    async getAuthorEnhancedDetails(authorName) {
+        try {
+            // First try to get author ID from Open Library
+            const searchResponse = await fetch(`${this.openLibraryAPI.baseUrl}/search/authors.json?q=${encodeURIComponent(authorName)}`);
+            const searchData = await searchResponse.json();
+            
+            if (searchData.docs && searchData.docs.length > 0) {
+                const authorId = searchData.docs[0].key;
+                return await this.openLibraryAPI.getAuthorDetails(authorId);
+            }
+            return null;
+        } catch (error) {
+            console.error('Error getting author details:', error);
+            return null;
+        }
+    }
+
+    async getBookRecommendations(bookId) {
+        try {
+            const book = await this.getBookDetails(bookId);
+            const genre = book.genres[0];
+            const author = book.authors[0];
+            
+            // Get recommendations based on genre and author
+            const genreResponse = await fetch(`${this.baseUrl}?q=subject:${genre}&maxResults=5`);
+            const authorResponse = await fetch(`${this.baseUrl}?q=inauthor:${author}&maxResults=5`);
+            
+            const [genreData, authorData] = await Promise.all([
+                genreResponse.json(),
+                authorResponse.json()
+            ]);
+
+            return {
+                byGenre: genreData.items?.map(item => this.formatBookData(item)) || [],
+                byAuthor: authorData.items?.map(item => this.formatBookData(item)) || []
+            };
+        } catch (error) {
+            console.error('Error getting recommendations:', error);
+            return null;
+        }
+    }
+
+    async getBookSeries(bookId) {
+        try {
+            const book = await this.getBookDetails(bookId);
+            const seriesQuery = book.title.split(':')[0]; // Try to extract series name
+            const response = await fetch(`${this.baseUrl}?q="${seriesQuery}"&maxResults=10`);
+            const data = await response.json();
+            
+            return data.items
+                ?.filter(item => item.volumeInfo.title.includes(seriesQuery))
+                .map(item => this.formatBookData(item)) || [];
+        } catch (error) {
+            console.error('Error getting series:', error);
+            return null;
+        }
+    }
+
+    async getBookReviews(bookId) {
+        try {
+            const response = await fetch(`${this.baseUrl}/${bookId}/userreviews`);
+            if (!response.ok) throw new Error('Reviews not found');
+            const data = await response.json();
+            return data.items?.map(review => ({
+                author: review.author.displayName,
+                rating: review.rating,
+                content: review.content,
+                date: review.date,
+                helpful: review.helpful
+            })) || [];
+        } catch (error) {
+            console.error('Error getting reviews:', error);
+            return null;
+        }
+    }
+}
+
+class OpenLibraryAPI {
+    constructor() {
+        this.baseUrl = 'https://openlibrary.org';
+        this.coversUrl = 'https://covers.openlibrary.org/b';
+        this.worksUrl = 'https://openlibrary.org/works';
+    }
+
+    async getBookDetails(isbn) {
+        try {
+            const response = await fetch(`${this.baseUrl}/isbn/${isbn}.json`);
+            if (!response.ok) {
+                throw new Error('Book not found in Open Library');
+            }
+            const data = await response.json();
+            return this.formatBookData(data);
+        } catch (error) {
+            console.error('Error fetching from Open Library:', error);
+            return null;
+        }
+    }
+
+    async getAuthorDetails(authorId) {
+        try {
+            const response = await fetch(`${this.baseUrl}${authorId}.json`);
+            if (!response.ok) {
+                throw new Error('Author not found in Open Library');
+            }
+            const data = await response.json();
+            return {
+                name: data.name,
+                bio: data.bio?.value || 'No biography available',
+                birthDate: data.birth_date,
+                deathDate: data.death_date,
+                works: data.works || []
+            };
+        } catch (error) {
+            console.error('Error fetching author details:', error);
+            return null;
+        }
+    }
+
+    getCoverUrl(isbn, size = 'M') {
+        // Size can be S (small), M (medium), L (large)
+        return `${this.coversUrl}/isbn/${isbn}-${size}.jpg`;
+    }
+
+    formatBookData(data) {
+        return {
+            openLibraryId: data.key,
+            title: data.title,
+            authors: data.authors ? data.authors.map(author => author.key) : [],
+            publishDate: data.publish_date,
+            publishers: data.publishers || [],
+            numberOfPages: data.number_of_pages,
+            subjects: data.subjects || [],
+            isbn: data.isbn_13?.[0] || data.isbn_10?.[0],
+            coverId: data.covers?.[0],
+            description: data.description?.value || 'No description available',
+            firstSentence: data.first_sentence?.value,
+            languages: data.languages || []
+        };
+    }
+
+    async getBookWorks(workId) {
+        try {
+            const response = await fetch(`${this.worksUrl}/${workId}.json`);
+            if (!response.ok) throw new Error('Work not found');
+            const data = await response.json();
+            return {
+                title: data.title,
+                description: data.description?.value,
+                subjects: data.subjects || [],
+                excerpts: data.excerpts || [],
+                firstPublishDate: data.first_publish_date,
+                covers: data.covers || [],
+                authors: data.authors || []
+            };
+        } catch (error) {
+            console.error('Error fetching work details:', error);
+            return null;
+        }
+    }
+
+    async getAuthorWorks(authorId) {
+        try {
+            const response = await fetch(`${this.baseUrl}/authors/${authorId}/works.json`);
+            if (!response.ok) throw new Error('Author works not found');
+            const data = await response.json();
+            return data.entries.map(work => ({
+                title: work.title,
+                key: work.key,
+                type: work.type,
+                subjects: work.subjects || []
+            }));
+        } catch (error) {
+            console.error('Error fetching author works:', error);
+            return null;
+        }
+    }
+
+    async getBookEditions(isbn) {
+        try {
+            const response = await fetch(`${this.baseUrl}/isbn/${isbn}/editions.json`);
+            if (!response.ok) throw new Error('Editions not found');
+            const data = await response.json();
+            return data.entries.map(edition => ({
+                title: edition.title,
+                publishDate: edition.publish_date,
+                publishers: edition.publishers || [],
+                languages: edition.languages || [],
+                coverId: edition.covers?.[0]
+            }));
+        } catch (error) {
+            console.error('Error fetching editions:', error);
+            return null;
+        }
     }
 } 

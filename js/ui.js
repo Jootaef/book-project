@@ -13,6 +13,8 @@ class UI {
         this.errorMessage = document.getElementById('error-message');
         
         this.initializeGenreSelect();
+        this.initializeEventListeners();
+        this.initializeIntersectionObserver();
     }
 
     initializeGenreSelect() {
@@ -29,6 +31,196 @@ class UI {
             option.textContent = genre;
             this.genreSelect.appendChild(option);
         });
+    }
+
+    initializeEventListeners() {
+        // Search input events
+        this.searchInput.addEventListener('input', this.handleSearchInput.bind(this));
+        this.searchInput.addEventListener('keypress', this.handleSearchKeyPress.bind(this));
+        
+        // Genre select events
+        this.genreSelect.addEventListener('change', this.handleGenreChange.bind(this));
+        
+        // Sort events
+        this.sortSelect.addEventListener('change', this.handleSortChange.bind(this));
+        
+        // Theme toggle events
+        this.themeToggle.addEventListener('mouseover', this.handleThemeHover.bind(this));
+        this.themeToggle.addEventListener('click', this.toggleTheme.bind(this));
+        
+        // Modal events
+        document.querySelectorAll('.close-modal').forEach(btn => {
+            btn.addEventListener('click', () => this.hideModal(this.bookModal));
+        });
+        
+        // Review form events
+        const reviewForm = document.getElementById('review-form');
+        reviewForm.addEventListener('submit', this.handleReviewSubmit.bind(this));
+        
+        // Star rating events
+        document.querySelectorAll('.star-rating .star').forEach(star => {
+            star.addEventListener('mouseover', this.handleStarHover.bind(this));
+            star.addEventListener('mouseout', this.handleStarOut.bind(this));
+            star.addEventListener('click', this.handleStarClick.bind(this));
+        });
+
+        // Window events
+        window.addEventListener('scroll', this.handleScroll.bind(this));
+        window.addEventListener('resize', this.handleResize.bind(this));
+        
+        // Book card events
+        this.booksContainer.addEventListener('mouseover', this.handleBookCardHover.bind(this));
+        this.booksContainer.addEventListener('mouseout', this.handleBookCardOut.bind(this));
+    }
+
+    initializeIntersectionObserver() {
+        const options = {
+            root: null,
+            rootMargin: '0px',
+            threshold: 0.1
+        };
+
+        this.observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                    if (entry.target.classList.contains('recommendations-section')) {
+                        this.loadRecommendations(entry.target.dataset.bookId);
+                    }
+                }
+            });
+        }, options);
+    }
+
+    // Event Handlers
+    handleSearchInput(e) {
+        const query = e.target.value;
+        if (query.length >= 3) {
+            this.showSearchSuggestions(query);
+        }
+    }
+
+    handleSearchKeyPress(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            this.performSearch();
+        }
+    }
+
+    handleGenreChange(e) {
+        this.currentGenre = e.target.value;
+        this.performSearch();
+    }
+
+    handleSortChange(e) {
+        const books = Array.from(this.booksContainer.children);
+        const sortedBooks = this.sortBooks(books, e.target.value);
+        this.displayBooks(sortedBooks);
+    }
+
+    handleThemeHover(e) {
+        e.target.style.transform = 'scale(1.1)';
+    }
+
+    handleStarHover(e) {
+        const rating = e.target.dataset.rating;
+        this.updateStarDisplay(rating);
+    }
+
+    handleStarOut() {
+        const currentRating = document.querySelector('.star-rating').dataset.currentRating || 0;
+        this.updateStarDisplay(currentRating);
+    }
+
+    handleStarClick(e) {
+        const rating = e.target.dataset.rating;
+        document.querySelector('.star-rating').dataset.currentRating = rating;
+        this.updateStarDisplay(rating);
+    }
+
+    handleScroll() {
+        const scrollPosition = window.scrollY;
+        if (scrollPosition > 100) {
+            document.querySelector('.navbar').classList.add('scrolled');
+        } else {
+            document.querySelector('.navbar').classList.remove('scrolled');
+        }
+    }
+
+    handleResize() {
+        this.updateLayout();
+    }
+
+    handleBookCardHover(e) {
+        const card = e.target.closest('.book-card');
+        if (card) {
+            card.classList.add('hover');
+        }
+    }
+
+    handleBookCardOut(e) {
+        const card = e.target.closest('.book-card');
+        if (card) {
+            card.classList.remove('hover');
+        }
+    }
+
+    async handleReviewSubmit(e) {
+        e.preventDefault();
+        const bookId = this.bookModal.querySelector('.book-details').dataset.bookId;
+        const rating = document.querySelector('.star-rating').dataset.currentRating;
+        const reviewText = document.getElementById('review-text').value;
+
+        if (!rating) {
+            this.showError('Please select a rating');
+            return;
+        }
+
+        try {
+            await this.submitReview(bookId, {
+                rating: parseInt(rating),
+                text: reviewText,
+                date: new Date().toISOString()
+            });
+            this.hideModal(this.reviewModal);
+            this.showSuccess('Review submitted successfully!');
+        } catch (error) {
+            this.showError('Error submitting review. Please try again.');
+        }
+    }
+
+    // UI Update Methods
+    updateStarDisplay(rating) {
+        const stars = document.querySelectorAll('.star-rating .star');
+        stars.forEach(star => {
+            const starRating = star.dataset.rating;
+            star.classList.toggle('filled', starRating <= rating);
+            star.classList.toggle('half', starRating - 0.5 === rating);
+        });
+    }
+
+    updateLayout() {
+        const isMobile = window.innerWidth <= 768;
+        document.body.classList.toggle('mobile-view', isMobile);
+        this.booksContainer.classList.toggle('grid-view', !isMobile);
+        this.booksContainer.classList.toggle('list-view', isMobile);
+    }
+
+    showSearchSuggestions(query) {
+        // Implement search suggestions
+        const suggestions = this.getSearchSuggestions(query);
+        this.displaySuggestions(suggestions);
+    }
+
+    async loadRecommendations(bookId) {
+        try {
+            const recommendations = await bookAPI.getBookRecommendations(bookId);
+            if (recommendations) {
+                this.displayRecommendations(recommendations);
+            }
+        } catch (error) {
+            console.error('Error loading recommendations:', error);
+        }
     }
 
     // Book Card Creation
@@ -106,38 +298,112 @@ class UI {
     }
 
     // Book Details Modal
-    showBookDetails(book) {
+    async showBookDetails(book) {
         const modal = this.bookModal;
-        const cover = document.getElementById('modal-cover');
-        const title = document.getElementById('modal-title');
-        const author = document.getElementById('modal-author');
-        const description = document.getElementById('modal-description');
-        const rating = document.getElementById('modal-rating');
-        const favoriteBtn = document.getElementById('add-to-favorites');
-        const genres = document.getElementById('modal-genres');
+        this.showLoading();
 
-        modal.querySelector('.book-details').dataset.bookId = book.id;
-        cover.src = book.coverImage;
-        cover.alt = `${book.title} cover`;
-        title.textContent = book.title;
-        author.textContent = book.authors.join(', ');
-        description.textContent = book.description;
-        rating.innerHTML = this.createStarRating(book.averageRating);
-        genres.innerHTML = book.genres.map(genre => 
-            `<span class="genre-tag">${genre}</span>`
-        ).join('');
+        try {
+            // Get enhanced book details including Open Library data
+            const enhancedBook = await bookAPI.getEnhancedBookDetails(book.id);
+            
+            const cover = document.getElementById('modal-cover');
+            const title = document.getElementById('modal-title');
+            const author = document.getElementById('modal-author');
+            const description = document.getElementById('modal-description');
+            const rating = document.getElementById('modal-rating');
+            const favoriteBtn = document.getElementById('add-to-favorites');
+            const genres = document.getElementById('modal-genres');
 
-        const isFavorite = storageManager.isFavorite(book.id);
-        favoriteBtn.innerHTML = isFavorite ? 
-            '<i class="fas fa-heart"></i> Remove from Favorites' : 
-            '<i class="far fa-heart"></i> Add to Favorites';
+            modal.querySelector('.book-details').dataset.bookId = enhancedBook.id;
+            
+            // Use enhanced cover if available
+            cover.src = enhancedBook.enhancedCover || enhancedBook.coverImage;
+            cover.alt = `${enhancedBook.title} cover`;
+            title.textContent = enhancedBook.title;
+            author.textContent = enhancedBook.authors.join(', ');
+            
+            // Combine descriptions if available
+            let fullDescription = enhancedBook.description;
+            if (enhancedBook.openLibrary?.description) {
+                fullDescription += '\n\n' + enhancedBook.openLibrary.description;
+            }
+            description.textContent = fullDescription;
+            
+            rating.innerHTML = this.createStarRating(enhancedBook.averageRating);
+            
+            // Combine genres from both sources
+            const allGenres = new Set([
+                ...enhancedBook.genres,
+                ...(enhancedBook.openLibrary?.subjects || [])
+            ]);
+            genres.innerHTML = Array.from(allGenres).map(genre => 
+                `<span class="genre-tag">${genre}</span>`
+            ).join('');
 
-        favoriteBtn.onclick = (e) => {
-            e.stopPropagation();
-            this.toggleFavorite(book, favoriteBtn);
-        };
+            // Add additional Open Library information if available
+            let additionalInfo = '';
+            if (enhancedBook.openLibrary) {
+                additionalInfo = `
+                    <div class="additional-info">
+                        <h3>Additional Information</h3>
+                        ${enhancedBook.openLibrary.numberOfPages ? 
+                            `<p><strong>Pages:</strong> ${enhancedBook.openLibrary.numberOfPages}</p>` : ''}
+                        ${enhancedBook.openLibrary.publishDate ? 
+                            `<p><strong>Published:</strong> ${enhancedBook.openLibrary.publishDate}</p>` : ''}
+                        ${enhancedBook.openLibrary.publishers?.length ? 
+                            `<p><strong>Publishers:</strong> ${enhancedBook.openLibrary.publishers.join(', ')}</p>` : ''}
+                        ${enhancedBook.openLibrary.languages?.length ? 
+                            `<p><strong>Languages:</strong> ${enhancedBook.openLibrary.languages.join(', ')}</p>` : ''}
+                        ${enhancedBook.openLibrary.firstSentence ? 
+                            `<p><strong>First Sentence:</strong> ${enhancedBook.openLibrary.firstSentence}</p>` : ''}
+                    </div>
+                `;
+            }
 
-        modal.classList.remove('hidden');
+            // Add author information if available
+            if (enhancedBook.authors.length > 0) {
+                const authorDetails = await bookAPI.getAuthorEnhancedDetails(enhancedBook.authors[0]);
+                if (authorDetails) {
+                    additionalInfo += `
+                        <div class="author-info">
+                            <h3>About the Author</h3>
+                            <p>${authorDetails.bio}</p>
+                            ${authorDetails.birthDate ? 
+                                `<p><strong>Born:</strong> ${authorDetails.birthDate}</p>` : ''}
+                            ${authorDetails.deathDate ? 
+                                `<p><strong>Died:</strong> ${authorDetails.deathDate}</p>` : ''}
+                        </div>
+                    `;
+                }
+            }
+
+            // Add the additional information to the modal
+            const additionalInfoContainer = modal.querySelector('.additional-info-container') || 
+                document.createElement('div');
+            additionalInfoContainer.className = 'additional-info-container';
+            additionalInfoContainer.innerHTML = additionalInfo;
+            
+            if (!modal.querySelector('.additional-info-container')) {
+                modal.querySelector('.book-info').appendChild(additionalInfoContainer);
+            }
+
+            const isFavorite = storageManager.isFavorite(enhancedBook.id);
+            favoriteBtn.innerHTML = isFavorite ? 
+                '<i class="fas fa-heart"></i> Remove from Favorites' : 
+                '<i class="far fa-heart"></i> Add to Favorites';
+
+            favoriteBtn.onclick = (e) => {
+                e.stopPropagation();
+                this.toggleFavorite(enhancedBook, favoriteBtn);
+            };
+
+            modal.classList.remove('hidden');
+        } catch (error) {
+            console.error('Error showing book details:', error);
+            this.showError('Error loading book details. Please try again.');
+        } finally {
+            this.hideLoading();
+        }
     }
 
     // Review Modal
