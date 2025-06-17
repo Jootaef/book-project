@@ -55,7 +55,9 @@ class UI {
         
         // Review form events
         const reviewForm = document.getElementById('review-form');
-        reviewForm.addEventListener('submit', this.handleReviewSubmit.bind(this));
+        if (reviewForm) {
+            reviewForm.addEventListener('submit', this.handleReviewSubmit.bind(this));
+        }
         
         // Star rating events
         document.querySelectorAll('.star-rating .star').forEach(star => {
@@ -63,7 +65,7 @@ class UI {
             star.addEventListener('mouseout', this.handleStarOut.bind(this));
             star.addEventListener('click', this.handleStarClick.bind(this));
         });
-
+        
         // Window events
         window.addEventListener('scroll', this.handleScroll.bind(this));
         window.addEventListener('resize', this.handleResize.bind(this));
@@ -122,22 +124,6 @@ class UI {
         e.target.style.transform = 'scale(1.1)';
     }
 
-    handleStarHover(e) {
-        const rating = e.target.dataset.rating;
-        this.updateStarDisplay(rating);
-    }
-
-    handleStarOut() {
-        const currentRating = document.querySelector('.star-rating').dataset.currentRating || 0;
-        this.updateStarDisplay(currentRating);
-    }
-
-    handleStarClick(e) {
-        const rating = e.target.dataset.rating;
-        document.querySelector('.star-rating').dataset.currentRating = rating;
-        this.updateStarDisplay(rating);
-    }
-
     handleScroll() {
         const scrollPosition = window.scrollY;
         if (scrollPosition > 100) {
@@ -165,6 +151,22 @@ class UI {
         }
     }
 
+    handleStarHover(e) {
+        const rating = e.target.dataset.rating;
+        this.updateStarDisplay(rating);
+    }
+
+    handleStarOut() {
+        const currentRating = document.querySelector('.star-rating').dataset.currentRating || 0;
+        this.updateStarDisplay(currentRating);
+    }
+
+    handleStarClick(e) {
+        const rating = e.target.dataset.rating;
+        document.querySelector('.star-rating').dataset.currentRating = rating;
+        this.updateStarDisplay(rating);
+    }
+
     async handleReviewSubmit(e) {
         e.preventDefault();
         const bookId = this.bookModal.querySelector('.book-details').dataset.bookId;
@@ -177,7 +179,7 @@ class UI {
         }
 
         try {
-            await this.submitReview(bookId, {
+            storageManager.addReview(bookId, {
                 rating: parseInt(rating),
                 text: reviewText,
                 date: new Date().toISOString()
@@ -189,7 +191,6 @@ class UI {
         }
     }
 
-    // UI Update Methods
     updateStarDisplay(rating) {
         const stars = document.querySelectorAll('.star-rating .star');
         stars.forEach(star => {
@@ -199,6 +200,7 @@ class UI {
         });
     }
 
+    // UI Update Methods
     updateLayout() {
         const isMobile = window.innerWidth <= 768;
         document.body.classList.toggle('mobile-view', isMobile);
@@ -234,7 +236,7 @@ class UI {
         
         card.innerHTML = `
             <div class="book-cover">
-                <img src="${book.coverImage}" alt="${book.title} cover">
+                <img src="${book.coverImage}" alt="${book.title} cover" onerror="this.src='https://via.placeholder.com/128x192?text=No+Cover'">
             </div>
             <div class="book-info">
                 <h3>${book.title}</h3>
@@ -306,6 +308,7 @@ class UI {
             // Get enhanced book details including Open Library data
             const enhancedBook = await bookAPI.getEnhancedBookDetails(book.id);
             
+            // Get modal elements with null checks
             const cover = document.getElementById('modal-cover');
             const title = document.getElementById('modal-title');
             const author = document.getElementById('modal-author');
@@ -313,6 +316,10 @@ class UI {
             const rating = document.getElementById('modal-rating');
             const favoriteBtn = document.getElementById('add-to-favorites');
             const genres = document.getElementById('modal-genres');
+
+            if (!cover || !title || !author || !description || !rating || !favoriteBtn) {
+                throw new Error('Modal elements not found');
+            }
 
             modal.querySelector('.book-details').dataset.bookId = enhancedBook.id;
             
@@ -336,9 +343,12 @@ class UI {
                 ...enhancedBook.genres,
                 ...(enhancedBook.openLibrary?.subjects || [])
             ]);
-            genres.innerHTML = Array.from(allGenres).map(genre => 
-                `<span class="genre-tag">${genre}</span>`
-            ).join('');
+            
+            if (genres) {
+                genres.innerHTML = Array.from(allGenres).map(genre => 
+                    `<span class="genre-tag">${genre}</span>`
+                ).join('');
+            }
 
             // Add additional Open Library information if available
             let additionalInfo = '';
@@ -362,18 +372,23 @@ class UI {
 
             // Add author information if available
             if (enhancedBook.authors.length > 0) {
-                const authorDetails = await bookAPI.getAuthorEnhancedDetails(enhancedBook.authors[0]);
-                if (authorDetails) {
-                    additionalInfo += `
-                        <div class="author-info">
-                            <h3>About the Author</h3>
-                            <p>${authorDetails.bio}</p>
-                            ${authorDetails.birthDate ? 
-                                `<p><strong>Born:</strong> ${authorDetails.birthDate}</p>` : ''}
-                            ${authorDetails.deathDate ? 
-                                `<p><strong>Died:</strong> ${authorDetails.deathDate}</p>` : ''}
-                        </div>
-                    `;
+                try {
+                    const authorDetails = await bookAPI.getAuthorEnhancedDetails(enhancedBook.authors[0]);
+                    if (authorDetails) {
+                        additionalInfo += `
+                            <div class="author-info">
+                                <h3>About the Author</h3>
+                                <p>${authorDetails.bio}</p>
+                                ${authorDetails.birthDate ? 
+                                    `<p><strong>Born:</strong> ${authorDetails.birthDate}</p>` : ''}
+                                ${authorDetails.deathDate ? 
+                                    `<p><strong>Died:</strong> ${authorDetails.deathDate}</p>` : ''}
+                            </div>
+                        `;
+                    }
+                } catch (authorError) {
+                    console.error('Error loading author details:', authorError);
+                    // Continue without author details
                 }
             }
 
@@ -384,7 +399,51 @@ class UI {
             additionalInfoContainer.innerHTML = additionalInfo;
             
             if (!modal.querySelector('.additional-info-container')) {
-                modal.querySelector('.book-info').appendChild(additionalInfoContainer);
+                const bookInfo = modal.querySelector('.book-info');
+                if (bookInfo) {
+                    bookInfo.appendChild(additionalInfoContainer);
+                }
+            }
+
+            // Add reviews section
+            const reviews = storageManager.getReviews(enhancedBook.id);
+            const reviewsContainer = modal.querySelector('.reviews-container') || 
+                document.createElement('div');
+            reviewsContainer.className = 'reviews-container';
+            
+            if (reviews.length > 0) {
+                const reviewsHTML = `
+                    <div class="reviews-section">
+                        <h3>Your Reviews (${reviews.length})</h3>
+                        ${reviews.map(review => `
+                            <div class="review-item">
+                                <div class="review-rating">
+                                    ${this.createStarRating(review.rating)}
+                                    <span class="review-date">${new Date(review.date).toLocaleDateString()}</span>
+                                </div>
+                                <p class="review-text">${review.text}</p>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+                reviewsContainer.innerHTML = reviewsHTML;
+            } else {
+                const reviewsHTML = `
+                    <div class="reviews-section">
+                        <h3>Your Reviews</h3>
+                        <div class="no-reviews">
+                            <p>No reviews yet. Be the first to review this book!</p>
+                        </div>
+                    </div>
+                `;
+                reviewsContainer.innerHTML = reviewsHTML;
+            }
+            
+            if (!modal.querySelector('.reviews-container')) {
+                const bookInfo = modal.querySelector('.book-info');
+                if (bookInfo) {
+                    bookInfo.appendChild(reviewsContainer);
+                }
             }
 
             const isFavorite = storageManager.isFavorite(enhancedBook.id);
@@ -404,39 +463,6 @@ class UI {
         } finally {
             this.hideLoading();
         }
-    }
-
-    // Review Modal
-    showReviewForm(bookId) {
-        const modal = this.reviewModal;
-        const form = document.getElementById('review-form');
-        const stars = modal.querySelectorAll('.star');
-
-        stars.forEach(star => {
-            star.onclick = () => {
-                const rating = star.dataset.rating;
-                stars.forEach(s => {
-                    s.classList.toggle('filled', s.dataset.rating <= rating);
-                });
-            };
-        });
-
-        form.onsubmit = (e) => {
-            e.preventDefault();
-            const rating = modal.querySelector('.star.filled')?.dataset.rating || '0';
-            const reviewText = document.getElementById('review-text').value;
-
-            storageManager.addReview(bookId, {
-                rating: parseInt(rating),
-                text: reviewText
-            });
-
-            this.hideModal(modal);
-            this.showBookDetails(storageManager.getFavorites().find(b => b.id === bookId) || 
-                               { id: bookId });
-        };
-
-        modal.classList.remove('hidden');
     }
 
     // Modal Management
@@ -460,6 +486,24 @@ class UI {
         setTimeout(() => {
             this.errorMessage.classList.add('hidden');
         }, 5000);
+    }
+
+    // Success Handling
+    showSuccess(message) {
+        // Create success message element if it doesn't exist
+        let successMessage = document.getElementById('success-message');
+        if (!successMessage) {
+            successMessage = document.createElement('div');
+            successMessage.id = 'success-message';
+            successMessage.className = 'success-message hidden';
+            document.body.appendChild(successMessage);
+        }
+        
+        successMessage.textContent = message;
+        successMessage.classList.remove('hidden');
+        setTimeout(() => {
+            successMessage.classList.add('hidden');
+        }, 3000);
     }
 
     // Theme Toggle
@@ -491,14 +535,177 @@ class UI {
 
     // Sort Books
     sortBooks(books, sortBy) {
-        switch (sortBy) {
-            case 'newest':
-                return books.sort((a, b) => 
-                    new Date(b.publishedDate) - new Date(a.publishedDate));
-            case 'rating':
-                return books.sort((a, b) => b.averageRating - a.averageRating);
-            default:
-                return books;
+        try {
+            switch (sortBy) {
+                case 'newest':
+                    return books.sort((a, b) => {
+                        const dateA = new Date(a.publishedDate || '1900-01-01');
+                        const dateB = new Date(b.publishedDate || '1900-01-01');
+                        return dateB - dateA;
+                    });
+                case 'rating':
+                    return books.sort((a, b) => (b.averageRating || 0) - (a.averageRating || 0));
+                default:
+                    return books;
+            }
+        } catch (error) {
+            console.error('Error in sortBooks:', error);
+            return books; // Return original order if sorting fails
         }
     }
+
+    // Review Modal
+    showReviewForm(bookId) {
+        console.log('showReviewForm called with bookId:', bookId);
+        
+        const modal = document.getElementById('review-modal');
+        if (!modal) {
+            console.error('Review modal not found');
+            return;
+        }
+
+        // Reset modal content to original form
+        modal.innerHTML = `
+            <div class="modal-content">
+                <span class="close-modal">&times;</span>
+                <h2>Add Your Review</h2>
+                <form id="review-form">
+                    <div class="star-rating">
+                        <span class="star" data-rating="1">★</span>
+                        <span class="star" data-rating="2">★</span>
+                        <span class="star" data-rating="3">★</span>
+                        <span class="star" data-rating="4">★</span>
+                        <span class="star" data-rating="5">★</span>
+                    </div>
+                    <textarea id="review-text" placeholder="Write your review here..."></textarea>
+                    <button type="submit">Submit Review</button>
+                </form>
+            </div>
+        `;
+
+        // Set up star rating functionality
+        let selectedRating = 0;
+        const stars = modal.querySelectorAll('.star');
+        const form = modal.querySelector('#review-form');
+        const reviewText = modal.querySelector('#review-text');
+
+        console.log('Stars found:', stars.length);
+
+        stars.forEach(star => {
+            star.addEventListener('click', () => {
+                const rating = parseInt(star.dataset.rating);
+                selectedRating = rating;
+                console.log('Star clicked, rating:', rating);
+                
+                // Update star display
+                stars.forEach(s => {
+                    const starRating = parseInt(s.dataset.rating);
+                    s.classList.toggle('filled', starRating <= rating);
+                });
+            });
+        });
+
+        // Handle form submission
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            console.log('Form submitted');
+            
+            const reviewTextValue = reviewText.value.trim();
+
+            // Validate input
+            if (selectedRating === 0) {
+                this.showError('Please select a rating');
+                return;
+            }
+
+            if (!reviewTextValue) {
+                this.showError('Please write a review');
+                return;
+            }
+
+            try {
+                // Save the review
+                storageManager.addReview(bookId, {
+                    rating: selectedRating,
+                    text: reviewTextValue,
+                    date: new Date().toISOString()
+                });
+
+                // Show success message
+                this.showSuccess('Review submitted successfully!');
+
+                // Close modal
+                this.hideModal(modal);
+
+                console.log('Review saved for book:', bookId, 'Rating:', selectedRating, 'Text:', reviewTextValue);
+            } catch (error) {
+                console.error('Error saving review:', error);
+                this.showError('Error saving review. Please try again.');
+            }
+        });
+
+        // Add close button functionality
+        const closeBtn = modal.querySelector('.close-modal');
+        closeBtn.addEventListener('click', () => {
+            this.hideModal(modal);
+        });
+
+        modal.classList.remove('hidden');
+        console.log('Review modal shown');
+    }
+
+    // Show Reviews Modal
+    showReviews(bookId) {
+        console.log('showReviews called with bookId:', bookId);
+        
+        const reviews = storageManager.getReviews(bookId);
+        const modal = this.reviewModal;
+        
+        if (!modal) {
+            console.error('Review modal not found');
+            return;
+        }
+        
+        // Change modal content to show reviews
+        const title = modal.querySelector('h2');
+        const form = modal.querySelector('#review-form');
+        
+        if (!title || !form) {
+            console.error('Required modal elements not found');
+            return;
+        }
+        
+        title.textContent = 'Your Reviews';
+        
+        if (reviews.length > 0) {
+            const reviewsHTML = `
+                <div class="reviews-list">
+                    ${reviews.map(review => `
+                        <div class="review-item">
+                            <div class="review-rating">
+                                ${this.createStarRating(review.rating)}
+                                <span class="review-date">${new Date(review.date).toLocaleDateString()}</span>
+                            </div>
+                            <p class="review-text">${review.text}</p>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+            form.innerHTML = reviewsHTML;
+        } else {
+            const noReviewsHTML = `
+                <div class="no-reviews">
+                    <p>No reviews yet. Be the first to review this book!</p>
+                    <button onclick="ui.showReviewForm('${bookId}')" class="add-review-btn">
+                        Add Your First Review
+                    </button>
+                </div>
+            `;
+            form.innerHTML = noReviewsHTML;
+        }
+        
+        modal.classList.remove('hidden');
+        console.log('Reviews modal shown with', reviews.length, 'reviews');
+    }
+} 
 } 

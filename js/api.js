@@ -51,18 +51,38 @@ class BookAPI {
     async searchBooks(query, genre = '') {
         try {
             let searchQuery = query;
-            if (genre) {
-                searchQuery = `${query} subject:${genre.toLowerCase()}`;
+            
+            // Apply genre filter if specified
+            if (genre && genre !== 'all') {
+                // Use different search strategies for better results
+                if (genre.toLowerCase() === 'fiction') {
+                    searchQuery = `${query} subject:fiction`;
+                } else if (genre.toLowerCase() === 'non-fiction') {
+                    searchQuery = `${query} subject:non-fiction`;
+                } else {
+                    searchQuery = `${query} subject:${genre.toLowerCase()}`;
+                }
             }
             
-            const response = await fetch(`${this.baseUrl}?q=${encodeURIComponent(searchQuery)}`);
+            const response = await fetch(`${this.baseUrl}?q=${encodeURIComponent(searchQuery)}&maxResults=20`);
             const data = await response.json();
             
             if (!data.items) {
                 return [];
             }
 
-            return data.items.map(item => this.formatBookData(item));
+            // Filter results by genre if specified
+            let filteredBooks = data.items;
+            if (genre && genre !== 'all') {
+                filteredBooks = data.items.filter(item => {
+                    const categories = item.volumeInfo.categories || [];
+                    return categories.some(category => 
+                        category.toLowerCase().includes(genre.toLowerCase())
+                    );
+                });
+            }
+
+            return filteredBooks.map(item => this.formatBookData(item));
         } catch (error) {
             console.error('Error searching books:', error);
             throw new Error('Failed to search books. Please try again later.');
@@ -71,15 +91,28 @@ class BookAPI {
 
     async getRandomBook(genre = '') {
         try {
-            const searchQuery = genre ? 
-                `subject:${genre.toLowerCase()}` : 
-                this.getRandomSearchTerm();
+            let searchQuery;
+            if (genre && genre !== 'all') {
+                searchQuery = `subject:${genre.toLowerCase()}`;
+            } else {
+                // Use more diverse search terms for better variety
+                searchQuery = this.getRandomSearchTerm();
+            }
                 
-            const response = await fetch(`${this.baseUrl}?q=${encodeURIComponent(searchQuery)}`);
+            const response = await fetch(`${this.baseUrl}?q=${encodeURIComponent(searchQuery)}&maxResults=40`);
             const data = await response.json();
             
             if (!data.items || data.items.length === 0) {
-                throw new Error('No books found. Please try again.');
+                // Fallback to a general search if no results
+                const fallbackResponse = await fetch(`${this.baseUrl}?q=popular+books&maxResults=40`);
+                const fallbackData = await fallbackResponse.json();
+                
+                if (!fallbackData.items || fallbackData.items.length === 0) {
+                    throw new Error('No books found. Please try again.');
+                }
+                
+                const randomIndex = Math.floor(Math.random() * fallbackData.items.length);
+                return this.formatBookData(fallbackData.items[randomIndex]);
             }
 
             const randomIndex = Math.floor(Math.random() * data.items.length);
@@ -110,17 +143,30 @@ class BookAPI {
             genres.push(this.getRandomGenre());
         }
 
+        // Better image handling
+        let coverImage = 'https://via.placeholder.com/128x192?text=No+Cover';
+        if (volumeInfo.imageLinks) {
+            // Try different image sizes
+            coverImage = volumeInfo.imageLinks.thumbnail || 
+                        volumeInfo.imageLinks.smallThumbnail || 
+                        volumeInfo.imageLinks.small || 
+                        volumeInfo.imageLinks.medium || 
+                        'https://via.placeholder.com/128x192?text=No+Cover';
+        }
+
         return {
             id: item.id,
             title: volumeInfo.title || 'Untitled',
             authors: authors,
             description: volumeInfo.description || 'No description available.',
-            coverImage: volumeInfo.imageLinks?.thumbnail || 'https://via.placeholder.com/128x192?text=No+Cover',
+            coverImage: coverImage,
             averageRating: volumeInfo.averageRating || 0,
             publishedDate: volumeInfo.publishedDate || 'Unknown',
             genres: genres,
             pageCount: volumeInfo.pageCount || 0,
-            language: volumeInfo.language || 'en'
+            language: volumeInfo.language || 'en',
+            publisher: volumeInfo.publisher || 'Unknown',
+            isbn: volumeInfo.industryIdentifiers?.[0]?.identifier || null
         };
     }
 
@@ -135,7 +181,29 @@ class BookAPI {
     }
 
     getRandomSearchTerm() {
-        const searchTerms = this.genres.map(genre => genre.toLowerCase());
+        // More diverse search terms for better variety
+        const searchTerms = [
+            'bestseller',
+            'award winning',
+            'classic literature',
+            'modern fiction',
+            'science fiction',
+            'mystery thriller',
+            'romance novel',
+            'fantasy book',
+            'biography memoir',
+            'history book',
+            'philosophy',
+            'poetry collection',
+            'self help',
+            'business book',
+            'cooking recipe',
+            'travel guide',
+            'art book',
+            'music history',
+            'sports biography',
+            'educational book'
+        ];
         const randomIndex = Math.floor(Math.random() * searchTerms.length);
         return searchTerms[randomIndex];
     }

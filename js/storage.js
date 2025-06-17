@@ -7,7 +7,7 @@ class StorageManager {
 
     // Favorites Management
     getFavorites() {
-        const favorites = localStorage.getItem(this.favoritesKey);
+        const favorites = localStorage.getItem('favorites');
         return favorites ? JSON.parse(favorites) : [];
     }
 
@@ -15,14 +15,14 @@ class StorageManager {
         const favorites = this.getFavorites();
         if (!favorites.some(fav => fav.id === book.id)) {
             favorites.push(book);
-            localStorage.setItem(this.favoritesKey, JSON.stringify(favorites));
+            localStorage.setItem('favorites', JSON.stringify(favorites));
         }
     }
 
     removeFromFavorites(bookId) {
         const favorites = this.getFavorites();
         const updatedFavorites = favorites.filter(book => book.id !== bookId);
-        localStorage.setItem(this.favoritesKey, JSON.stringify(updatedFavorites));
+        localStorage.setItem('favorites', JSON.stringify(updatedFavorites));
     }
 
     isFavorite(bookId) {
@@ -63,31 +63,32 @@ class StorageManager {
 
     // Theme Management
     getTheme() {
-        return localStorage.getItem(this.themeKey) || 'light';
+        return localStorage.getItem('theme') || 'light';
     }
 
     setTheme(theme) {
-        localStorage.setItem(this.themeKey, theme);
+        localStorage.setItem('theme', theme);
     }
 
     // Search History
+    addSearchHistory(query) {
+        const history = this.getSearchHistory();
+        if (!history.includes(query)) {
+            history.unshift(query);
+            if (history.length > 10) {
+                history.pop();
+            }
+            localStorage.setItem('searchHistory', JSON.stringify(history));
+        }
+    }
+
     getSearchHistory() {
-        const history = localStorage.getItem('bookDiscovery_searchHistory');
+        const history = localStorage.getItem('searchHistory');
         return history ? JSON.parse(history) : [];
     }
 
-    addToSearchHistory(query) {
-        const history = this.getSearchHistory();
-        // Remove if exists and add to front
-        const filteredHistory = history.filter(item => item !== query);
-        filteredHistory.unshift(query);
-        // Keep only last 10 searches
-        const trimmedHistory = filteredHistory.slice(0, 10);
-        localStorage.setItem('bookDiscovery_searchHistory', JSON.stringify(trimmedHistory));
-    }
-
     clearSearchHistory() {
-        localStorage.removeItem('bookDiscovery_searchHistory');
+        localStorage.removeItem('searchHistory');
     }
 
     // Clear All Data
