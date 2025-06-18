@@ -55,7 +55,19 @@ class BookAPI {
                 searchQuery = `${query} subject:${genre.toLowerCase()}`;
             }
             
-            const response = await fetch(`${this.baseUrl}?q=${encodeURIComponent(searchQuery)}`);
+            const response = await fetch(`${this.baseUrl}?q=${encodeURIComponent(searchQuery)}`, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                },
+                mode: 'cors'
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
             const data = await response.json();
             
             if (!data.items) {
@@ -65,6 +77,9 @@ class BookAPI {
             return data.items.map(item => this.formatBookData(item));
         } catch (error) {
             console.error('Error searching books:', error);
+            if (error.message.includes('CORS') || error.message.includes('Failed to fetch')) {
+                throw new Error('CORS error: Unable to access Google Books API. Please try again later or check your internet connection.');
+            }
             throw new Error('Failed to search books. Please try again later.');
         }
     }
@@ -337,6 +352,53 @@ class BookAPI {
             console.error('Error getting reviews:', error);
             return null;
         }
+    }
+
+    getFallbackBooks() {
+        return [
+            {
+                id: 'fallback-1',
+                title: 'The Great Gatsby',
+                authors: ['F. Scott Fitzgerald'],
+                description: 'A story of the fabulously wealthy Jay Gatsby and his love for the beautiful Daisy Buchanan.',
+                coverImage: 'https://via.placeholder.com/128x192?text=The+Great+Gatsby',
+                averageRating: 4.5,
+                publishedDate: '1925-04-10',
+                genres: ['Fiction', 'Classic'],
+                pageCount: 180,
+                language: 'en',
+                publisher: 'Scribner',
+                isbn: null
+            },
+            {
+                id: 'fallback-2',
+                title: 'To Kill a Mockingbird',
+                authors: ['Harper Lee'],
+                description: 'The story of young Scout Finch and her father Atticus in a racially divided Alabama town.',
+                coverImage: 'https://via.placeholder.com/128x192?text=To+Kill+a+Mockingbird',
+                averageRating: 4.8,
+                publishedDate: '1960-07-11',
+                genres: ['Fiction', 'Classic'],
+                pageCount: 281,
+                language: 'en',
+                publisher: 'J. B. Lippincott & Co.',
+                isbn: null
+            },
+            {
+                id: 'fallback-3',
+                title: '1984',
+                authors: ['George Orwell'],
+                description: 'A dystopian novel about totalitarianism and surveillance society.',
+                coverImage: 'https://via.placeholder.com/128x192?text=1984',
+                averageRating: 4.6,
+                publishedDate: '1949-06-08',
+                genres: ['Fiction', 'Dystopian'],
+                pageCount: 328,
+                language: 'en',
+                publisher: 'Secker & Warburg',
+                isbn: null
+            }
+        ];
     }
 }
 

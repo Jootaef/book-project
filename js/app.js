@@ -50,7 +50,11 @@ async function loadInitialBooks() {
         const books = await bookAPI.searchBooks('popular books');
         ui.displayBooks(books);
     } catch (error) {
-        ui.showError('Failed to load initial books. Please try again later.');
+        console.error('API Error:', error);
+        // Use fallback books if API fails
+        const fallbackBooks = bookAPI.getFallbackBooks();
+        ui.displayBooks(fallbackBooks);
+        ui.showError('Using sample books (API temporarily unavailable). Try searching for specific books.');
     } finally {
         ui.hideLoading();
     }
