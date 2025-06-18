@@ -49,14 +49,6 @@ async function loadInitialBooks() {
         ui.showLoading();
         const books = await bookAPI.searchBooks('popular books');
         ui.displayBooks(books);
-        
-        // Add a test review for testing purposes
-        storageManager.addReview('test-book-id', {
-            rating: 5,
-            text: 'This is a test review to verify the review system is working correctly.',
-            date: new Date().toISOString()
-        });
-        console.log('Test review added to storage');
     } catch (error) {
         ui.showError('Failed to load initial books. Please try again later.');
     } finally {
@@ -100,41 +92,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-<<<<<<< HEAD
-=======
-    // Event delegation for review buttons (since they're created dynamically)
-    document.addEventListener('click', (e) => {
-        // Add review button
-        if (e.target.id === 'add-review' || e.target.closest('#add-review')) {
-            e.stopPropagation();
-            const bookId = e.target.closest('.book-details')?.dataset.bookId;
-            if (bookId) {
-                ui.showReviewForm(bookId);
-            }
-        }
-        
-        // View reviews button
-        if (e.target.id === 'view-reviews' || e.target.closest('#view-reviews')) {
-            e.stopPropagation();
-            const bookId = e.target.closest('.book-details')?.dataset.bookId;
-            if (bookId) {
-                ui.showReviews(bookId);
-            }
-        }
-        
-        // Test buttons
-        if (e.target.id === 'test-add-review') {
-            console.log('Test Add Review clicked');
-            ui.showReviewForm('test-book-id');
-        }
-        
-        if (e.target.id === 'test-view-reviews') {
-            console.log('Test View Reviews clicked');
-            ui.showReviews('test-book-id');
-        }
-    });
-
->>>>>>> d2fde0ecf47ac302b19ce63dd709dd2d1a045744
     // Handle navigation
     document.querySelectorAll('.nav-links a').forEach(link => {
         link.addEventListener('click', (e) => {
@@ -195,11 +152,7 @@ async function handleSearch() {
             }
         } else {
             ui.displayBooks(books);
-            // Show success message
-            const message = genre && genre !== 'all' 
-                ? `Found ${books.length} books for "${query}" in ${genre}`
-                : `Found ${books.length} books for "${query}"`;
-            ui.showSuccess(message);
+            console.log(`Found ${books.length} books for "${query}"`);
         }
     } catch (error) {
         console.error('Search error:', error);

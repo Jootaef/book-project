@@ -549,6 +549,24 @@ button:hover {
         width: 100%;
         justify-content: center;
     }
+
+    /* Theme toggle responsive styles */
+    #theme-toggle {
+        font-size: 1rem;
+        padding: 8px;
+        min-width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    #test-theme-btn {
+        font-size: 10px;
+        padding: 6px 8px;
+        min-width: 80px;
+        height: 32px;
+    }
 }
 
 @media (max-width: 480px) {
@@ -566,6 +584,55 @@ button:hover {
 
     .search-input {
         font-size: 1rem;
+    }
+
+    /* Theme toggle mobile styles */
+    #theme-toggle {
+        font-size: 0.9rem;
+        padding: 6px;
+        min-width: 36px;
+        height: 36px;
+    }
+
+    #test-theme-btn {
+        font-size: 9px;
+        padding: 4px 6px;
+        min-width: 70px;
+        height: 28px;
+    }
+
+    .nav-links {
+        gap: 0.8rem;
+    }
+}
+
+/* Extra small screens */
+@media (max-width: 360px) {
+    .navbar {
+        padding: 0.8rem;
+    }
+
+    .logo h1 {
+        font-size: 1.3rem;
+    }
+
+    .nav-links {
+        gap: 0.5rem;
+    }
+
+    /* Theme toggle extra small screen styles */
+    #theme-toggle {
+        font-size: 0.8rem;
+        padding: 5px;
+        min-width: 32px;
+        height: 32px;
+    }
+
+    #test-theme-btn {
+        font-size: 8px;
+        padding: 3px 5px;
+        min-width: 60px;
+        height: 24px;
     }
 }
 
@@ -745,6 +812,23 @@ button:hover {
 
 #theme-toggle:hover {
     transform: rotate(180deg);
+}
+
+/* Test Theme Button Styles */
+#test-theme-btn {
+    transition: all 0.3s ease;
+    font-weight: 500;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+#test-theme-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+#test-theme-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 /* Book Details Flip Card */
