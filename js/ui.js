@@ -298,7 +298,15 @@ class UI {
             console.log('Book card clicked:', book.title);
             if (!e.target.closest('.favorite-btn')) {
                 console.log('Showing book details for:', book.title);
-                this.showBookDetails(book);
+                // Try UI method first, fallback to global function
+                if (this.showBookDetails) {
+                    this.showBookDetails(book);
+                } else if (window.showBookModal) {
+                    window.showBookModal(book);
+                } else {
+                    console.error('No modal function available');
+                    alert('Modal not available. Please refresh the page.');
+                }
             } else {
                 console.log('Favorite button clicked, not showing details');
             }
@@ -361,30 +369,21 @@ class UI {
         return `<div class="star-rating">${stars}</div>`;
     }
 
-    // Book Details Modal
+    // Book Details Modal - Simplified for GitHub Pages compatibility
     async showBookDetails(book) {
         console.log('=== Showing Book Details ===');
         console.log('Book:', book);
         
-        const modal = this.bookModal;
+        // Find modal directly
+        const modal = document.getElementById('book-modal');
         if (!modal) {
-            console.error('Modal element not found!');
-            // Try to find modal by ID as fallback
-            const fallbackModal = document.getElementById('book-modal');
-            if (fallbackModal) {
-                console.log('Found modal via fallback method');
-                this.bookModal = fallbackModal;
-            } else {
-                console.error('Modal not found even with fallback method');
-                this.showError('Modal not available. Please refresh the page.');
-                return;
-            }
+            console.error('Modal not found!');
+            alert('Modal not available. Please refresh the page.');
+            return;
         }
         
-        this.showLoading();
-
         try {
-            // Get modal elements with fallbacks
+            // Get all modal elements
             const cover = document.getElementById('modal-cover');
             const title = document.getElementById('modal-title');
             const author = document.getElementById('modal-author');
@@ -393,29 +392,12 @@ class UI {
             const favoriteBtn = document.getElementById('add-to-favorites');
             const genres = document.getElementById('modal-genres');
 
-            // Check if all required elements exist
-            const requiredElements = { cover, title, author, description, rating, favoriteBtn };
-            const missingElements = Object.entries(requiredElements)
-                .filter(([name, element]) => !element)
-                .map(([name]) => name);
-
-            if (missingElements.length > 0) {
-                throw new Error(`Missing modal elements: ${missingElements.join(', ')}`);
-            }
-
-            // Set book ID
-            const bookDetailsElement = modal.querySelector('.book-details');
-            if (bookDetailsElement) {
-                bookDetailsElement.dataset.bookId = book.id;
-            }
-            
-            // Set basic book information with safe fallbacks
-            cover.src = book.coverImage || 'https://via.placeholder.com/200x300?text=No+Cover';
-            cover.alt = `${book.title || 'Book'} cover`;
-            title.textContent = book.title || 'Unknown Title';
-            author.textContent = book.authors && book.authors.length > 0 ? book.authors.join(', ') : 'Unknown Author';
-            description.textContent = book.description || 'No description available.';
-            rating.innerHTML = this.createStarRating(book.averageRating || 0);
+            // Set book data
+            if (cover) cover.src = book.coverImage || 'https://via.placeholder.com/200x300?text=No+Cover';
+            if (title) title.textContent = book.title || 'Unknown Title';
+            if (author) author.textContent = book.authors && book.authors.length > 0 ? book.authors.join(', ') : 'Unknown Author';
+            if (description) description.textContent = book.description || 'No description available.';
+            if (rating) rating.innerHTML = this.createStarRating(book.averageRating || 0);
             
             // Set genres
             if (genres && book.genres && book.genres.length > 0) {
@@ -427,54 +409,53 @@ class UI {
             }
 
             // Set favorite button
-            const isFavorite = storageManager && storageManager.isFavorite ? storageManager.isFavorite(book.id) : false;
-            favoriteBtn.innerHTML = isFavorite ? 
-                '<i class="fas fa-heart"></i> Remove from Favorites' : 
-                '<i class="far fa-heart"></i> Add to Favorites';
-            favoriteBtn.className = `favorite-btn ${isFavorite ? 'favorited' : ''}`;
+            if (favoriteBtn) {
+                const isFavorite = storageManager && storageManager.isFavorite ? storageManager.isFavorite(book.id) : false;
+                favoriteBtn.innerHTML = isFavorite ? 
+                    '<i class="fas fa-heart"></i> Remove from Favorites' : 
+                    '<i class="far fa-heart"></i> Add to Favorites';
+                favoriteBtn.className = `favorite-btn ${isFavorite ? 'favorited' : ''}`;
 
-            favoriteBtn.onclick = (e) => {
-                e.stopPropagation();
-                this.toggleFavorite(book, favoriteBtn);
-            };
+                favoriteBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    this.toggleFavorite(book, favoriteBtn);
+                };
+            }
 
-            // Show modal with multiple approaches for better compatibility
-            modal.classList.remove('hidden');
-            modal.classList.add('show');
+            // Show modal using direct style manipulation
             modal.style.display = 'flex';
             modal.style.opacity = '1';
+            modal.style.pointerEvents = 'auto';
+            modal.classList.remove('hidden');
+            modal.classList.add('show');
             
-            console.log('Modal classes after showing:', modal.className);
-            console.log('Modal display style:', window.getComputedStyle(modal).display);
-            console.log('Modal opacity:', window.getComputedStyle(modal).opacity);
+            console.log('Modal should now be visible');
             
         } catch (error) {
             console.error('Error showing book details:', error);
-            this.showError('Error loading book details. Please try again.');
-        } finally {
-            this.hideLoading();
+            alert('Error loading book details. Please try again.');
         }
     }
 
-    // Modal Management
+    // Modal Management - Simplified for GitHub Pages
     hideModal(modal) {
         console.log('=== Hiding Modal ===');
+        
+        // If no modal provided, find it
+        if (!modal) {
+            modal = document.getElementById('book-modal');
+        }
+        
         if (modal) {
-            modal.classList.remove('show');
-            modal.classList.add('hidden');
+            // Hide modal using direct style manipulation
             modal.style.display = 'none';
             modal.style.opacity = '0';
+            modal.style.pointerEvents = 'none';
+            modal.classList.remove('show');
+            modal.classList.add('hidden');
             console.log('Modal hidden successfully');
         } else {
-            console.error('Modal element not provided to hideModal');
-            // Try to hide all modals as fallback
-            document.querySelectorAll('.modal').forEach(m => {
-                m.classList.remove('show');
-                m.classList.add('hidden');
-                m.style.display = 'none';
-                m.style.opacity = '0';
-            });
-            console.log('Hidden all modals as fallback');
+            console.error('Modal not found for hiding');
         }
     }
 

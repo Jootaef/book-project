@@ -57,7 +57,7 @@
         <section class="test-section" style="text-align: center; margin: 1rem 0;">
             <button id="test-add-review" style="margin: 0 0.5rem;">Test Add Review</button>
             <button id="test-view-reviews" style="margin: 0 0.5rem;">Test View Reviews</button>
-            <button id="test-modal" style="margin: 0 0.5rem; background: #4CAF50; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;" onclick="if(window.ui) ui.showBookDetails({id:'test',title:'Test Book',authors:['Test Author'],description:'Test description',coverImage:'https://via.placeholder.com/200x300?text=Test',averageRating:4.5,genres:['Test']}); else alert('UI not ready');">Test Modal</button>
+            <button id="test-modal" style="margin: 0 0.5rem; background: #4CAF50; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;" onclick="window.showBookModal({id:'test',title:'Test Book',authors:['Test Author'],description:'This is a test book description to verify the modal is working properly in GitHub Pages.',coverImage:'https://via.placeholder.com/200x300?text=Test',averageRating:4.5,genres:['Fiction','Test']});">Test Modal</button>
         </section>
 
         <section class="books-grid" id="books-container">
@@ -167,6 +167,87 @@
     
     <!-- Additional initialization for GitHub Pages compatibility -->
     <script>
+        // Global function to show modal - works independently of UI object
+        window.showBookModal = function(book) {
+            console.log('Global showBookModal called with:', book);
+            
+            const modal = document.getElementById('book-modal');
+            if (!modal) {
+                console.error('Modal not found in global function');
+                alert('Modal not available');
+                return;
+            }
+            
+            try {
+                // Set book data
+                const cover = document.getElementById('modal-cover');
+                const title = document.getElementById('modal-title');
+                const author = document.getElementById('modal-author');
+                const description = document.getElementById('modal-description');
+                const rating = document.getElementById('modal-rating');
+                const genres = document.getElementById('modal-genres');
+                
+                if (cover) cover.src = book.coverImage || 'https://via.placeholder.com/200x300?text=No+Cover';
+                if (title) title.textContent = book.title || 'Unknown Title';
+                if (author) author.textContent = book.authors && book.authors.length > 0 ? book.authors.join(', ') : 'Unknown Author';
+                if (description) description.textContent = book.description || 'No description available.';
+                if (rating) rating.innerHTML = createStarRating(book.averageRating || 0);
+                
+                if (genres && book.genres && book.genres.length > 0) {
+                    genres.innerHTML = book.genres.map(genre => 
+                        `<span class="genre-tag">${genre}</span>`
+                    ).join('');
+                } else if (genres) {
+                    genres.innerHTML = '';
+                }
+                
+                // Show modal
+                modal.style.display = 'flex';
+                modal.style.opacity = '1';
+                modal.style.pointerEvents = 'auto';
+                modal.classList.remove('hidden');
+                modal.classList.add('show');
+                
+                console.log('Modal shown via global function');
+                
+            } catch (error) {
+                console.error('Error in global showBookModal:', error);
+                alert('Error showing book details');
+            }
+        };
+        
+        // Global function to hide modal
+        window.hideBookModal = function() {
+            const modal = document.getElementById('book-modal');
+            if (modal) {
+                modal.style.display = 'none';
+                modal.style.opacity = '0';
+                modal.style.pointerEvents = 'none';
+                modal.classList.remove('show');
+                modal.classList.add('hidden');
+                console.log('Modal hidden via global function');
+            }
+        };
+        
+        // Simple star rating function
+        function createStarRating(rating) {
+            const fullStars = Math.floor(rating);
+            const hasHalfStar = rating % 1 >= 0.5;
+            let stars = '';
+
+            for (let i = 0; i < 5; i++) {
+                if (i < fullStars) {
+                    stars += '<span class="star filled">★</span>';
+                } else if (i === fullStars && hasHalfStar) {
+                    stars += '<span class="star half">★</span>';
+                } else {
+                    stars += '<span class="star">☆</span>';
+                }
+            }
+
+            return `<div class="star-rating">${stars}</div>`;
+        }
+        
         // Ensure modal works in GitHub Pages
         document.addEventListener('DOMContentLoaded', function() {
             console.log('=== GitHub Pages Compatibility Check ===');
@@ -186,10 +267,7 @@
                 closeButtons.forEach(btn => {
                     btn.addEventListener('click', function() {
                         console.log('Close button clicked');
-                        modal.classList.remove('show');
-                        modal.classList.add('hidden');
-                        modal.style.display = 'none';
-                        modal.style.opacity = '0';
+                        window.hideBookModal();
                     });
                 });
                 
@@ -197,10 +275,7 @@
                 modal.addEventListener('click', function(e) {
                     if (e.target === modal) {
                         console.log('Outside click detected');
-                        modal.classList.remove('show');
-                        modal.classList.add('hidden');
-                        modal.style.display = 'none';
-                        modal.style.opacity = '0';
+                        window.hideBookModal();
                     }
                 });
                 
