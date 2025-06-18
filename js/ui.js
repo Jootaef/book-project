@@ -65,6 +65,20 @@ class UI {
             btn.addEventListener('click', () => this.hideModal(this.bookModal));
         });
         
+        // Close modal when clicking outside
+        this.bookModal.addEventListener('click', (e) => {
+            if (e.target === this.bookModal) {
+                this.hideModal(this.bookModal);
+            }
+        });
+        
+        // Close modal with Escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && this.bookModal.classList.contains('show')) {
+                this.hideModal(this.bookModal);
+            }
+        });
+        
         // Star rating events
         document.querySelectorAll('.star-rating .star').forEach(star => {
             star.addEventListener('mouseover', this.handleStarHover.bind(this));
@@ -235,6 +249,8 @@ class UI {
 
     // Book Card Creation
     createBookCard(book) {
+        console.log('Creating book card for:', book.title);
+        
         const card = document.createElement('div');
         card.className = 'book-card';
         card.dataset.bookId = book.id;
@@ -263,8 +279,12 @@ class UI {
 
         // Add click event for book details
         card.addEventListener('click', (e) => {
+            console.log('Book card clicked:', book.title);
             if (!e.target.closest('.favorite-btn')) {
+                console.log('Showing book details for:', book.title);
                 this.showBookDetails(book);
+            } else {
+                console.log('Favorite button clicked, not showing details');
             }
         });
 
@@ -272,9 +292,11 @@ class UI {
         const favoriteBtn = card.querySelector('.favorite-btn');
         favoriteBtn.addEventListener('click', (e) => {
             e.stopPropagation();
+            console.log('Favorite button clicked for:', book.title);
             this.toggleFavorite(book, favoriteBtn);
         });
 
+        console.log('Book card created successfully for:', book.title);
         return card;
     }
 
@@ -325,7 +347,15 @@ class UI {
 
     // Book Details Modal
     async showBookDetails(book) {
+        console.log('=== Showing Book Details ===');
+        console.log('Book:', book);
+        
         const modal = this.bookModal;
+        if (!modal) {
+            console.error('Modal element not found!');
+            return;
+        }
+        
         this.showLoading();
 
         try {
@@ -345,12 +375,12 @@ class UI {
             modal.querySelector('.book-details').dataset.bookId = book.id;
             
             // Set basic book information
-            cover.src = book.coverImage;
+            cover.src = book.coverImage || 'https://via.placeholder.com/200x300?text=No+Cover';
             cover.alt = `${book.title} cover`;
-            title.textContent = book.title;
-            author.textContent = book.authors.join(', ');
+            title.textContent = book.title || 'Unknown Title';
+            author.textContent = book.authors ? book.authors.join(', ') : 'Unknown Author';
             description.textContent = book.description || 'No description available.';
-            rating.innerHTML = this.createStarRating(book.averageRating);
+            rating.innerHTML = this.createStarRating(book.averageRating || 0);
             
             // Set genres
             if (genres && book.genres && book.genres.length > 0) {
@@ -373,7 +403,13 @@ class UI {
                 this.toggleFavorite(book, favoriteBtn);
             };
 
+            // Show modal - remove hidden class and add show class
             modal.classList.remove('hidden');
+            modal.classList.add('show');
+            
+            console.log('Modal classes after showing:', modal.className);
+            console.log('Modal display style:', window.getComputedStyle(modal).display);
+            
         } catch (error) {
             console.error('Error showing book details:', error);
             this.showError('Error loading book details. Please try again.');
@@ -384,7 +420,14 @@ class UI {
 
     // Modal Management
     hideModal(modal) {
-        modal.classList.add('hidden');
+        console.log('=== Hiding Modal ===');
+        if (modal) {
+            modal.classList.remove('show');
+            modal.classList.add('hidden');
+            console.log('Modal hidden successfully');
+        } else {
+            console.error('Modal element not provided to hideModal');
+        }
     }
 
     // Loading State

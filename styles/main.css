@@ -306,23 +306,48 @@ button:hover {
     margin-bottom: 0.5rem;
 }
 
+.book-info p {
+    margin: 0.5rem 0;
+    color: var(--text-secondary);
+    line-height: 1.6;
+}
+
+#modal-description {
+    margin: 1.5rem 0;
+    padding: 1rem;
+    background: var(--background-color);
+    border-radius: 8px;
+    border-left: 4px solid var(--accent-color);
+    font-style: italic;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
 /* Modal Styles */
 .modal {
     display: none;
     position: fixed;
-    z-index: 1000;
+    z-index: 9999;
     left: 0;
     top: 0;
     width: 100%;
     height: 100%;
     background-color: rgba(0, 0, 0, 0.5);
     backdrop-filter: blur(5px);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.modal.hidden {
+    display: none;
+    opacity: 0;
 }
 
 .modal.show {
     display: flex;
     align-items: center;
     justify-content: center;
+    opacity: 1;
 }
 
 .modal-content {
@@ -337,6 +362,13 @@ button:hover {
     position: relative;
     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
     border: 1px solid var(--border-color);
+    transform: scale(0.7);
+    transition: transform 0.3s ease;
+    z-index: 10000;
+}
+
+.modal.show .modal-content {
+    transform: scale(1);
 }
 
 .close-modal {
@@ -373,12 +405,6 @@ button:hover {
     margin: 0 0 1rem 0;
     color: var(--text-color);
     font-size: 1.8rem;
-}
-
-.book-info p {
-    margin: 0.5rem 0;
-    color: var(--text-secondary);
-    line-height: 1.6;
 }
 
 .book-actions {

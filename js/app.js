@@ -111,6 +111,25 @@ document.addEventListener('DOMContentLoaded', () => {
             e.target.classList.add('active');
         });
     });
+
+    // Test modal functionality
+    const testModalBtn = document.getElementById('test-modal');
+    if (testModalBtn) {
+        testModalBtn.addEventListener('click', () => {
+            console.log('Test modal button clicked');
+            const testBook = {
+                id: 'test-book-1',
+                title: 'Test Book Title',
+                authors: ['Test Author'],
+                description: 'This is a test book description to verify the modal is working properly.',
+                coverImage: 'https://via.placeholder.com/200x300?text=Test+Book',
+                averageRating: 4.5,
+                genres: ['Fiction', 'Test'],
+                publishedDate: '2024-01-01'
+            };
+            ui.showBookDetails(testBook);
+        });
+    }
 });
 
 // Show Favorites
