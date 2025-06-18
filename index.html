@@ -57,7 +57,7 @@
         <section class="test-section" style="text-align: center; margin: 1rem 0;">
             <button id="test-add-review" style="margin: 0 0.5rem;">Test Add Review</button>
             <button id="test-view-reviews" style="margin: 0 0.5rem;">Test View Reviews</button>
-            <button id="test-modal" style="margin: 0 0.5rem; background: #4CAF50; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">Test Modal</button>
+            <button id="test-modal" style="margin: 0 0.5rem; background: #4CAF50; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;" onclick="if(window.ui) ui.showBookDetails({id:'test',title:'Test Book',authors:['Test Author'],description:'Test description',coverImage:'https://via.placeholder.com/200x300?text=Test',averageRating:4.5,genres:['Test']}); else alert('UI not ready');">Test Modal</button>
         </section>
 
         <section class="books-grid" id="books-container">
@@ -164,5 +164,58 @@
     <script src="js/storage.js"></script>
     <script src="js/ui.js"></script>
     <script src="js/app.js"></script>
+    
+    <!-- Additional initialization for GitHub Pages compatibility -->
+    <script>
+        // Ensure modal works in GitHub Pages
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('=== GitHub Pages Compatibility Check ===');
+            
+            // Check if modal exists
+            const modal = document.getElementById('book-modal');
+            if (modal) {
+                console.log('✅ Modal found in DOM');
+                
+                // Ensure modal has proper initial state
+                modal.classList.add('hidden');
+                modal.style.display = 'none';
+                modal.style.opacity = '0';
+                
+                // Add additional close handlers
+                const closeButtons = modal.querySelectorAll('.close-modal');
+                closeButtons.forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        console.log('Close button clicked');
+                        modal.classList.remove('show');
+                        modal.classList.add('hidden');
+                        modal.style.display = 'none';
+                        modal.style.opacity = '0';
+                    });
+                });
+                
+                // Close on outside click
+                modal.addEventListener('click', function(e) {
+                    if (e.target === modal) {
+                        console.log('Outside click detected');
+                        modal.classList.remove('show');
+                        modal.classList.add('hidden');
+                        modal.style.display = 'none';
+                        modal.style.opacity = '0';
+                    }
+                });
+                
+                console.log('✅ Modal initialization complete');
+            } else {
+                console.error('❌ Modal not found in DOM');
+            }
+            
+            // Check if UI is available
+            if (window.ui) {
+                console.log('✅ UI object available');
+            } else {
+                console.warn('⚠️ UI object not available yet');
+            }
+        });
+    </script>
 </body>
 </html>

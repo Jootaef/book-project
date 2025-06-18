@@ -336,18 +336,21 @@ button:hover {
     backdrop-filter: blur(5px);
     opacity: 0;
     transition: opacity 0.3s ease;
+    pointer-events: none;
 }
 
 .modal.hidden {
-    display: none;
-    opacity: 0;
+    display: none !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
 }
 
 .modal.show {
-    display: flex;
+    display: flex !important;
     align-items: center;
     justify-content: center;
-    opacity: 1;
+    opacity: 1 !important;
+    pointer-events: auto !important;
 }
 
 .modal-content {

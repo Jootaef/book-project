@@ -11,6 +11,22 @@ class UI {
         this.loadingSpinner = document.getElementById('loading-spinner');
         this.errorMessage = document.getElementById('error-message');
         
+        // Ensure modal is properly initialized
+        if (!this.bookModal) {
+            console.warn('Modal not found during initialization, will try again later');
+            // Try again after a short delay
+            setTimeout(() => {
+                this.bookModal = document.getElementById('book-modal');
+                if (this.bookModal) {
+                    console.log('Modal found on retry');
+                } else {
+                    console.error('Modal still not found after retry');
+                }
+            }, 500);
+        } else {
+            console.log('Modal initialized successfully');
+        }
+        
         // Initialize after a short delay to ensure all dependencies are loaded
         setTimeout(() => {
             this.initializeGenreSelect();
@@ -353,13 +369,22 @@ class UI {
         const modal = this.bookModal;
         if (!modal) {
             console.error('Modal element not found!');
-            return;
+            // Try to find modal by ID as fallback
+            const fallbackModal = document.getElementById('book-modal');
+            if (fallbackModal) {
+                console.log('Found modal via fallback method');
+                this.bookModal = fallbackModal;
+            } else {
+                console.error('Modal not found even with fallback method');
+                this.showError('Modal not available. Please refresh the page.');
+                return;
+            }
         }
         
         this.showLoading();
 
         try {
-            // Get modal elements
+            // Get modal elements with fallbacks
             const cover = document.getElementById('modal-cover');
             const title = document.getElementById('modal-title');
             const author = document.getElementById('modal-author');
@@ -368,17 +393,27 @@ class UI {
             const favoriteBtn = document.getElementById('add-to-favorites');
             const genres = document.getElementById('modal-genres');
 
-            if (!cover || !title || !author || !description || !rating || !favoriteBtn) {
-                throw new Error('Modal elements not found');
+            // Check if all required elements exist
+            const requiredElements = { cover, title, author, description, rating, favoriteBtn };
+            const missingElements = Object.entries(requiredElements)
+                .filter(([name, element]) => !element)
+                .map(([name]) => name);
+
+            if (missingElements.length > 0) {
+                throw new Error(`Missing modal elements: ${missingElements.join(', ')}`);
             }
 
-            modal.querySelector('.book-details').dataset.bookId = book.id;
+            // Set book ID
+            const bookDetailsElement = modal.querySelector('.book-details');
+            if (bookDetailsElement) {
+                bookDetailsElement.dataset.bookId = book.id;
+            }
             
-            // Set basic book information
+            // Set basic book information with safe fallbacks
             cover.src = book.coverImage || 'https://via.placeholder.com/200x300?text=No+Cover';
-            cover.alt = `${book.title} cover`;
+            cover.alt = `${book.title || 'Book'} cover`;
             title.textContent = book.title || 'Unknown Title';
-            author.textContent = book.authors ? book.authors.join(', ') : 'Unknown Author';
+            author.textContent = book.authors && book.authors.length > 0 ? book.authors.join(', ') : 'Unknown Author';
             description.textContent = book.description || 'No description available.';
             rating.innerHTML = this.createStarRating(book.averageRating || 0);
             
@@ -392,7 +427,7 @@ class UI {
             }
 
             // Set favorite button
-            const isFavorite = storageManager.isFavorite(book.id);
+            const isFavorite = storageManager && storageManager.isFavorite ? storageManager.isFavorite(book.id) : false;
             favoriteBtn.innerHTML = isFavorite ? 
                 '<i class="fas fa-heart"></i> Remove from Favorites' : 
                 '<i class="far fa-heart"></i> Add to Favorites';
@@ -403,12 +438,15 @@ class UI {
                 this.toggleFavorite(book, favoriteBtn);
             };
 
-            // Show modal - remove hidden class and add show class
+            // Show modal with multiple approaches for better compatibility
             modal.classList.remove('hidden');
             modal.classList.add('show');
+            modal.style.display = 'flex';
+            modal.style.opacity = '1';
             
             console.log('Modal classes after showing:', modal.className);
             console.log('Modal display style:', window.getComputedStyle(modal).display);
+            console.log('Modal opacity:', window.getComputedStyle(modal).opacity);
             
         } catch (error) {
             console.error('Error showing book details:', error);
@@ -424,9 +462,19 @@ class UI {
         if (modal) {
             modal.classList.remove('show');
             modal.classList.add('hidden');
+            modal.style.display = 'none';
+            modal.style.opacity = '0';
             console.log('Modal hidden successfully');
         } else {
             console.error('Modal element not provided to hideModal');
+            // Try to hide all modals as fallback
+            document.querySelectorAll('.modal').forEach(m => {
+                m.classList.remove('show');
+                m.classList.add('hidden');
+                m.style.display = 'none';
+                m.style.opacity = '0';
+            });
+            console.log('Hidden all modals as fallback');
         }
     }
 
