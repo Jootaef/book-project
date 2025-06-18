@@ -8,32 +8,42 @@ class UI {
         this.sortSelect = document.getElementById('sort-select');
         this.themeToggle = document.getElementById('theme-toggle');
         this.bookModal = document.getElementById('book-modal');
-        this.reviewModal = document.getElementById('review-modal');
         this.loadingSpinner = document.getElementById('loading-spinner');
         this.errorMessage = document.getElementById('error-message');
         
-        this.initializeGenreSelect();
-        this.initializeEventListeners();
-        this.initializeIntersectionObserver();
+        // Initialize after a short delay to ensure all dependencies are loaded
+        setTimeout(() => {
+            this.initializeGenreSelect();
+            this.initializeEventListeners();
+            this.initializeIntersectionObserver();
+        }, 100);
     }
 
     initializeGenreSelect() {
-        // Clear existing options except the first one
-        while (this.genreSelect.options.length > 1) {
-            this.genreSelect.remove(1);
-        }
+        try {
+            // Clear existing options except the first one
+            while (this.genreSelect.options.length > 1) {
+                this.genreSelect.remove(1);
+            }
 
-        // Add genre options
-        const genres = bookAPI.getGenres();
-        genres.forEach(genre => {
-            const option = document.createElement('option');
-            option.value = genre.toLowerCase();
-            option.textContent = genre;
-            this.genreSelect.appendChild(option);
-        });
+            // Add genre options only if bookAPI is available
+            if (typeof bookAPI !== 'undefined' && bookAPI.getGenres) {
+                const genres = bookAPI.getGenres();
+                genres.forEach(genre => {
+                    const option = document.createElement('option');
+                    option.value = genre.toLowerCase();
+                    option.textContent = genre;
+                    this.genreSelect.appendChild(option);
+                });
+            }
+        } catch (error) {
+            console.error('Error initializing genre select:', error);
+        }
     }
 
     initializeEventListeners() {
+        console.log('=== Initializing Event Listeners ===');
+        
         // Search input events
         this.searchInput.addEventListener('input', this.handleSearchInput.bind(this));
         this.searchInput.addEventListener('keypress', this.handleSearchKeyPress.bind(this));
@@ -45,17 +55,15 @@ class UI {
         this.sortSelect.addEventListener('change', this.handleSortChange.bind(this));
         
         // Theme toggle events
+        console.log('Setting up theme toggle event for:', this.themeToggle);
         this.themeToggle.addEventListener('mouseover', this.handleThemeHover.bind(this));
         this.themeToggle.addEventListener('click', this.toggleTheme.bind(this));
+        console.log('Theme toggle event listener added');
         
         // Modal events
         document.querySelectorAll('.close-modal').forEach(btn => {
             btn.addEventListener('click', () => this.hideModal(this.bookModal));
         });
-        
-        // Review form events
-        const reviewForm = document.getElementById('review-form');
-        reviewForm.addEventListener('submit', this.handleReviewSubmit.bind(this));
         
         // Star rating events
         document.querySelectorAll('.star-rating .star').forEach(star => {
@@ -71,6 +79,8 @@ class UI {
         // Book card events
         this.booksContainer.addEventListener('mouseover', this.handleBookCardHover.bind(this));
         this.booksContainer.addEventListener('mouseout', this.handleBookCardOut.bind(this));
+        
+        console.log('=== Event Listeners Initialized ===');
     }
 
     initializeIntersectionObserver() {
@@ -269,13 +279,29 @@ class UI {
     }
 
     toggleFavorite(book, button) {
+        console.log('Toggle favorite called for book:', book.title);
         const isFavorite = storageManager.isFavorite(book.id);
+        console.log('Is favorite:', isFavorite);
         if (isFavorite) {
             storageManager.removeFromFavorites(book.id);
             button.innerHTML = '<i class="far fa-heart"></i>';
+            button.classList.remove('favorited');
+            console.log('Removed from favorites');
         } else {
             storageManager.addToFavorites(book);
             button.innerHTML = '<i class="fas fa-heart"></i>';
+            button.classList.add('favorited');
+            console.log('Added to favorites');
+        }
+        
+        // Update the book card if it exists
+        const bookCard = document.querySelector(`[data-book-id="${book.id}"]`);
+        if (bookCard) {
+            const cardFavoriteBtn = bookCard.querySelector('.favorite-btn');
+            if (cardFavoriteBtn) {
+                cardFavoriteBtn.innerHTML = `<i class="${!isFavorite ? 'fas' : 'far'} fa-heart"></i>`;
+                cardFavoriteBtn.classList.toggle('favorited', !isFavorite);
+            }
         }
     }
 
@@ -303,9 +329,7 @@ class UI {
         this.showLoading();
 
         try {
-            // Get enhanced book details including Open Library data
-            const enhancedBook = await bookAPI.getEnhancedBookDetails(book.id);
-            
+            // Get modal elements
             const cover = document.getElementById('modal-cover');
             const title = document.getElementById('modal-title');
             const author = document.getElementById('modal-author');
@@ -314,87 +338,39 @@ class UI {
             const favoriteBtn = document.getElementById('add-to-favorites');
             const genres = document.getElementById('modal-genres');
 
-            modal.querySelector('.book-details').dataset.bookId = enhancedBook.id;
-            
-            // Use enhanced cover if available
-            cover.src = enhancedBook.enhancedCover || enhancedBook.coverImage;
-            cover.alt = `${enhancedBook.title} cover`;
-            title.textContent = enhancedBook.title;
-            author.textContent = enhancedBook.authors.join(', ');
-            
-            // Combine descriptions if available
-            let fullDescription = enhancedBook.description;
-            if (enhancedBook.openLibrary?.description) {
-                fullDescription += '\n\n' + enhancedBook.openLibrary.description;
-            }
-            description.textContent = fullDescription;
-            
-            rating.innerHTML = this.createStarRating(enhancedBook.averageRating);
-            
-            // Combine genres from both sources
-            const allGenres = new Set([
-                ...enhancedBook.genres,
-                ...(enhancedBook.openLibrary?.subjects || [])
-            ]);
-            genres.innerHTML = Array.from(allGenres).map(genre => 
-                `<span class="genre-tag">${genre}</span>`
-            ).join('');
-
-            // Add additional Open Library information if available
-            let additionalInfo = '';
-            if (enhancedBook.openLibrary) {
-                additionalInfo = `
-                    <div class="additional-info">
-                        <h3>Additional Information</h3>
-                        ${enhancedBook.openLibrary.numberOfPages ? 
-                            `<p><strong>Pages:</strong> ${enhancedBook.openLibrary.numberOfPages}</p>` : ''}
-                        ${enhancedBook.openLibrary.publishDate ? 
-                            `<p><strong>Published:</strong> ${enhancedBook.openLibrary.publishDate}</p>` : ''}
-                        ${enhancedBook.openLibrary.publishers?.length ? 
-                            `<p><strong>Publishers:</strong> ${enhancedBook.openLibrary.publishers.join(', ')}</p>` : ''}
-                        ${enhancedBook.openLibrary.languages?.length ? 
-                            `<p><strong>Languages:</strong> ${enhancedBook.openLibrary.languages.join(', ')}</p>` : ''}
-                        ${enhancedBook.openLibrary.firstSentence ? 
-                            `<p><strong>First Sentence:</strong> ${enhancedBook.openLibrary.firstSentence}</p>` : ''}
-                    </div>
-                `;
+            if (!cover || !title || !author || !description || !rating || !favoriteBtn) {
+                throw new Error('Modal elements not found');
             }
 
-            // Add author information if available
-            if (enhancedBook.authors.length > 0) {
-                const authorDetails = await bookAPI.getAuthorEnhancedDetails(enhancedBook.authors[0]);
-                if (authorDetails) {
-                    additionalInfo += `
-                        <div class="author-info">
-                            <h3>About the Author</h3>
-                            <p>${authorDetails.bio}</p>
-                            ${authorDetails.birthDate ? 
-                                `<p><strong>Born:</strong> ${authorDetails.birthDate}</p>` : ''}
-                            ${authorDetails.deathDate ? 
-                                `<p><strong>Died:</strong> ${authorDetails.deathDate}</p>` : ''}
-                        </div>
-                    `;
-                }
-            }
-
-            // Add the additional information to the modal
-            const additionalInfoContainer = modal.querySelector('.additional-info-container') || 
-                document.createElement('div');
-            additionalInfoContainer.className = 'additional-info-container';
-            additionalInfoContainer.innerHTML = additionalInfo;
+            modal.querySelector('.book-details').dataset.bookId = book.id;
             
-            if (!modal.querySelector('.additional-info-container')) {
-                modal.querySelector('.book-info').appendChild(additionalInfoContainer);
+            // Set basic book information
+            cover.src = book.coverImage;
+            cover.alt = `${book.title} cover`;
+            title.textContent = book.title;
+            author.textContent = book.authors.join(', ');
+            description.textContent = book.description || 'No description available.';
+            rating.innerHTML = this.createStarRating(book.averageRating);
+            
+            // Set genres
+            if (genres && book.genres && book.genres.length > 0) {
+                genres.innerHTML = book.genres.map(genre => 
+                    `<span class="genre-tag">${genre}</span>`
+                ).join('');
+            } else if (genres) {
+                genres.innerHTML = '';
             }
 
-            const isFavorite = storageManager.isFavorite(enhancedBook.id);
+            // Set favorite button
+            const isFavorite = storageManager.isFavorite(book.id);
             favoriteBtn.innerHTML = isFavorite ? 
                 '<i class="fas fa-heart"></i> Remove from Favorites' : 
                 '<i class="far fa-heart"></i> Add to Favorites';
+            favoriteBtn.className = `favorite-btn ${isFavorite ? 'favorited' : ''}`;
 
             favoriteBtn.onclick = (e) => {
                 e.stopPropagation();
-                this.toggleFavorite(enhancedBook, favoriteBtn);
+                this.toggleFavorite(book, favoriteBtn);
             };
 
             modal.classList.remove('hidden');
@@ -404,39 +380,6 @@ class UI {
         } finally {
             this.hideLoading();
         }
-    }
-
-    // Review Modal
-    showReviewForm(bookId) {
-        const modal = this.reviewModal;
-        const form = document.getElementById('review-form');
-        const stars = modal.querySelectorAll('.star');
-
-        stars.forEach(star => {
-            star.onclick = () => {
-                const rating = star.dataset.rating;
-                stars.forEach(s => {
-                    s.classList.toggle('filled', s.dataset.rating <= rating);
-                });
-            };
-        });
-
-        form.onsubmit = (e) => {
-            e.preventDefault();
-            const rating = modal.querySelector('.star.filled')?.dataset.rating || '0';
-            const reviewText = document.getElementById('review-text').value;
-
-            storageManager.addReview(bookId, {
-                rating: parseInt(rating),
-                text: reviewText
-            });
-
-            this.hideModal(modal);
-            this.showBookDetails(storageManager.getFavorites().find(b => b.id === bookId) || 
-                               { id: bookId });
-        };
-
-        modal.classList.remove('hidden');
     }
 
     // Modal Management
@@ -464,13 +407,43 @@ class UI {
 
     // Theme Toggle
     toggleTheme() {
-        const currentTheme = document.body.getAttribute('data-theme');
+        console.log('=== Theme Toggle Called ===');
+        
+        // Get current theme
+        const currentTheme = document.body.getAttribute('data-theme') || 'light';
+        console.log('Current theme:', currentTheme);
+        
+        // Determine new theme
         const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+        console.log('New theme:', newTheme);
+        
+        // Apply the new theme
         document.body.setAttribute('data-theme', newTheme);
-        storageManager.setTheme(newTheme);
-        this.themeToggle.innerHTML = newTheme === 'dark' ? 
-            '<i class="fas fa-sun"></i>' : 
-            '<i class="fas fa-moon"></i>';
+        
+        // Save to storage
+        if (typeof storageManager !== 'undefined') {
+            storageManager.setTheme(newTheme);
+        } else {
+            localStorage.setItem('preferredTheme', newTheme);
+        }
+        
+        // Update the toggle button icon - ensure it's always visible
+        if (this.themeToggle) {
+            this.themeToggle.innerHTML = newTheme === 'dark' ? 
+                '<i class="fas fa-sun"></i>' : 
+                '<i class="fas fa-moon"></i>';
+            console.log('Button icon updated to:', newTheme === 'dark' ? 'sun' : 'moon');
+        } else {
+            console.error('Theme toggle button not found!');
+        }
+        
+        console.log('Theme toggled successfully to:', newTheme);
+        console.log('Body data-theme is now:', document.body.getAttribute('data-theme'));
+        
+        // Update test button if it exists
+        if (typeof updateTestButtonText === 'function') {
+            updateTestButtonText();
+        }
     }
 
     // Book Grid Management

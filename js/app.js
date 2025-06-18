@@ -3,12 +3,45 @@ const bookAPI = new BookAPI();
 const storageManager = new StorageManager();
 const ui = new UI();
 
-// Initialize theme
-const savedTheme = storageManager.getTheme();
-document.body.setAttribute('data-theme', savedTheme);
-ui.themeToggle.innerHTML = savedTheme === 'dark' ? 
-    '<i class="fas fa-sun"></i>' : 
-    '<i class="fas fa-moon"></i>';
+// Initialize theme with better error handling
+function initializeTheme() {
+    try {
+        console.log('=== Initializing Theme ===');
+        
+        // Get saved theme from storage
+        const savedTheme = storageManager.getTheme();
+        console.log('Saved theme from storage:', savedTheme);
+        
+        // Apply theme to body
+        document.body.setAttribute('data-theme', savedTheme);
+        console.log('Theme applied to body:', document.body.getAttribute('data-theme'));
+        
+        // Update toggle button icon
+        if (ui.themeToggle) {
+            ui.themeToggle.innerHTML = savedTheme === 'dark' ? 
+                '<i class="fas fa-sun"></i>' : 
+                '<i class="fas fa-moon"></i>';
+            console.log('Theme toggle button updated');
+        } else {
+            console.warn('Theme toggle button not found during initialization');
+        }
+        
+        console.log('=== Theme Initialization Complete ===');
+        
+    } catch (error) {
+        console.error('Error initializing theme:', error);
+        // Fallback to light theme
+        try {
+            document.body.setAttribute('data-theme', 'light');
+            if (ui.themeToggle) {
+                ui.themeToggle.innerHTML = '<i class="fas fa-moon"></i>';
+            }
+            console.log('Fallback theme applied: light');
+        } catch (fallbackError) {
+            console.error('Fallback theme also failed:', fallbackError);
+        }
+    }
+}
 
 // Load initial books when the page loads
 async function loadInitialBooks() {
@@ -25,6 +58,9 @@ async function loadInitialBooks() {
 
 // Event Listeners
 document.addEventListener('DOMContentLoaded', () => {
+    // Initialize theme after DOM is ready
+    initializeTheme();
+    
     // Load initial books
     loadInitialBooks();
 
@@ -40,8 +76,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Sort functionality
     ui.sortSelect.addEventListener('change', handleSort);
 
-    // Theme toggle
-    ui.themeToggle.addEventListener('click', () => ui.toggleTheme());
+    // Theme toggle is handled in UI class, no need to duplicate here
 
     // Modal close buttons
     document.querySelectorAll('.close-modal').forEach(button => {
@@ -55,13 +90,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.target.classList.contains('modal')) {
             ui.hideModal(e.target);
         }
-    });
-
-    // Add review button
-    document.getElementById('add-review').addEventListener('click', (e) => {
-        e.stopPropagation();
-        const bookId = e.target.closest('.book-details').dataset.bookId;
-        ui.showReviewForm(bookId);
     });
 
     // Handle navigation
@@ -131,10 +159,37 @@ async function handleRandomBook() {
     try {
         ui.showLoading();
         const genre = ui.genreSelect.value;
-        const book = await bookAPI.getRandomBook(genre);
+        
+        // Try to get a random book
+        let book;
+        try {
+            book = await bookAPI.getRandomBook(genre);
+        } catch (apiError) {
+            console.error('API error for random book:', apiError);
+            // Fallback: search for popular books and pick one randomly
+            const fallbackBooks = await bookAPI.searchBooks('popular books');
+            if (fallbackBooks.length > 0) {
+                const randomIndex = Math.floor(Math.random() * fallbackBooks.length);
+                book = fallbackBooks[randomIndex];
+            } else {
+                throw new Error('No books available');
+            }
+        }
+        
+        // Ensure the book has a valid image
+        if (!book.coverImage || book.coverImage.includes('placeholder')) {
+            book.coverImage = 'https://via.placeholder.com/128x192?text=Book+Cover';
+        }
+        
+        // Display the book
         ui.displayBooks([book]);
+        console.log('Random book displayed:', book.title);
+        
     } catch (error) {
+        console.error('Error in handleRandomBook:', error);
         ui.showError('Failed to get random book. Please try again later.');
+        // Try to load initial books as fallback
+        await loadInitialBooks();
     } finally {
         ui.hideLoading();
     }

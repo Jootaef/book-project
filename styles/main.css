@@ -19,6 +19,105 @@
     --border-color: #444;
     --card-background: #2d2d2d;
     --hover-color: #4cc3a3;
+    --accent-color: #ffd700;
+    --accent-color-light: #ffed4a;
+}
+
+/* Dark mode specific styles */
+[data-theme="dark"] .modal {
+    background-color: rgba(0, 0, 0, 0.8);
+}
+
+[data-theme="dark"] .modal-content {
+    background-color: var(--card-background);
+    border: 1px solid var(--border-color);
+}
+
+[data-theme="dark"] .book-card {
+    background-color: var(--card-background);
+    border: 1px solid var(--border-color);
+    color: var(--text-color);
+}
+
+[data-theme="dark"] .search-section {
+    background-color: var(--card-background);
+    border: 1px solid var(--border-color);
+}
+
+[data-theme="dark"] #search-input,
+[data-theme="dark"] #genre-select {
+    background-color: var(--background-color);
+    color: var(--text-color);
+    border-color: var(--border-color);
+}
+
+[data-theme="dark"] button {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+[data-theme="dark"] button:hover {
+    background-color: var(--hover-color);
+}
+
+[data-theme="dark"] .book-info h3 {
+    color: var(--text-color);
+}
+
+[data-theme="dark"] .book-info p {
+    color: var(--text-color);
+}
+
+[data-theme="dark"] .modal-content h2 {
+    color: var(--text-color);
+}
+
+[data-theme="dark"] .favorite-btn {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+[data-theme="dark"] .favorite-btn:hover {
+    background-color: var(--hover-color);
+}
+
+[data-theme="dark"] .favorite-btn.favorited {
+    background-color: #dc3545;
+}
+
+[data-theme="dark"] .favorite-btn.favorited:hover {
+    background-color: #c82333;
+}
+
+/* Additional dark mode styles for better coverage */
+[data-theme="dark"] .sort-section {
+    background-color: var(--card-background);
+    border: 1px solid var(--border-color);
+}
+
+[data-theme="dark"] .sort-container label {
+    color: var(--text-color);
+}
+
+[data-theme="dark"] .no-books {
+    color: var(--text-color);
+}
+
+[data-theme="dark"] .genre-tag {
+    background-color: var(--accent-color);
+    color: #333;
+}
+
+[data-theme="dark"] .star {
+    color: var(--accent-color);
+}
+
+[data-theme="dark"] .star.filled {
+    color: var(--accent-color);
+}
+
+[data-theme="dark"] .star.half {
+    color: var(--accent-color);
 }
 
 * {

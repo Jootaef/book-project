@@ -17,8 +17,12 @@
             <div class="nav-links">
                 <a href="#" class="active">Home</a>
                 <a href="#favorites">Favorites</a>
-                <button id="theme-toggle" aria-label="Toggle dark mode">
+                <button id="theme-toggle" aria-label="Toggle dark mode" onclick="if(window.ui) ui.toggleTheme(); else testThemeToggle();">
                     <i class="fas fa-moon"></i>
+                </button>
+                <!-- Temporary test button -->
+                <button id="test-theme-btn" onclick="testThemeToggle()" style="background: #ff6b6b; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 12px;">
+                    Test Theme
                 </button>
             </div>
         </nav>
@@ -75,8 +79,8 @@
                     <p id="modal-author"></p>
                     <div class="rating">
                         <div class="stars" id="modal-rating"></div>
-                        <button id="add-review">Add Review</button>
                     </div>
+                    <div id="modal-genres" class="genres"></div>
                     <p id="modal-description"></p>
                     <button id="add-to-favorites" class="favorite-btn">
                         <i class="far fa-heart"></i> Add to Favorites
@@ -108,6 +112,46 @@
     <footer>
         <p>&copy; 2024 Book Discovery. All rights reserved.</p>
     </footer>
+
+    <!-- Theme Test Script -->
+    <script>
+        // Simple theme test
+        console.log('=== Theme Test Script ===');
+        console.log('Body element:', document.body);
+        console.log('Current data-theme:', document.body.getAttribute('data-theme'));
+        
+        // Test theme toggle functionality
+        function testThemeToggle() {
+            const currentTheme = document.body.getAttribute('data-theme') || 'light';
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            document.body.setAttribute('data-theme', newTheme);
+            localStorage.setItem('preferredTheme', newTheme);
+            console.log('Test theme toggle - New theme:', newTheme);
+            
+            // Update test button text
+            updateTestButtonText();
+        }
+        
+        // Update test button text based on current theme
+        function updateTestButtonText() {
+            const testBtn = document.getElementById('test-theme-btn');
+            if (testBtn) {
+                const currentTheme = document.body.getAttribute('data-theme') || 'light';
+                testBtn.textContent = currentTheme === 'dark' ? '🌙 Dark Mode' : '☀️ Light Mode';
+                testBtn.style.background = currentTheme === 'dark' ? '#4a90e2' : '#ff6b6b';
+            }
+        }
+        
+        // Initialize test button text
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(updateTestButtonText, 200);
+        });
+        
+        // Make it available globally for testing
+        window.testThemeToggle = testThemeToggle;
+        window.updateTestButtonText = updateTestButtonText;
+        console.log('Theme test functions available');
+    </script>
 
     <script src="js/api.js"></script>
     <script src="js/storage.js"></script>

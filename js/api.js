@@ -71,19 +71,55 @@ class BookAPI {
 
     async getRandomBook(genre = '') {
         try {
-            const searchQuery = genre ? 
-                `subject:${genre.toLowerCase()}` : 
-                this.getRandomSearchTerm();
-                
-            const response = await fetch(`${this.baseUrl}?q=${encodeURIComponent(searchQuery)}`);
-            const data = await response.json();
+            // Try multiple search strategies to get a random book
+            const searchStrategies = [];
             
-            if (!data.items || data.items.length === 0) {
-                throw new Error('No books found. Please try again.');
+            if (genre && genre !== 'all') {
+                searchStrategies.push(`subject:${genre.toLowerCase()}`);
             }
-
-            const randomIndex = Math.floor(Math.random() * data.items.length);
-            return this.formatBookData(data.items[randomIndex]);
+            
+            // Add some popular search terms as fallbacks
+            searchStrategies.push('bestseller');
+            searchStrategies.push('popular books');
+            searchStrategies.push('fiction');
+            searchStrategies.push('nonfiction');
+            
+            // Try each strategy until we find books
+            for (const searchQuery of searchStrategies) {
+                try {
+                    const response = await fetch(`${this.baseUrl}?q=${encodeURIComponent(searchQuery)}&maxResults=40`);
+                    const data = await response.json();
+                    
+                    if (data.items && data.items.length > 0) {
+                        // Filter out books without covers
+                        const booksWithCovers = data.items.filter(item => 
+                            item.volumeInfo && 
+                            item.volumeInfo.imageLinks && 
+                            item.volumeInfo.imageLinks.thumbnail
+                        );
+                        
+                        if (booksWithCovers.length > 0) {
+                            const randomIndex = Math.floor(Math.random() * booksWithCovers.length);
+                            return this.formatBookData(booksWithCovers[randomIndex]);
+                        }
+                    }
+                } catch (strategyError) {
+                    console.log(`Strategy failed for: ${searchQuery}`, strategyError);
+                    continue;
+                }
+            }
+            
+            // If all strategies fail, try one more time with any books
+            const fallbackResponse = await fetch(`${this.baseUrl}?q=books&maxResults=20`);
+            const fallbackData = await fallbackResponse.json();
+            
+            if (fallbackData.items && fallbackData.items.length > 0) {
+                const randomIndex = Math.floor(Math.random() * fallbackData.items.length);
+                return this.formatBookData(fallbackData.items[randomIndex]);
+            }
+            
+            throw new Error('No books found with any search strategy');
+            
         } catch (error) {
             console.error('Error getting random book:', error);
             throw new Error('Failed to get random book. Please try again later.');
@@ -110,17 +146,36 @@ class BookAPI {
             genres.push(this.getRandomGenre());
         }
 
+        // Better image handling with multiple fallbacks
+        let coverImage = 'https://via.placeholder.com/128x192?text=Book+Cover';
+        if (volumeInfo.imageLinks) {
+            // Try different image sizes in order of preference
+            coverImage = volumeInfo.imageLinks.thumbnail || 
+                        volumeInfo.imageLinks.smallThumbnail || 
+                        volumeInfo.imageLinks.small || 
+                        volumeInfo.imageLinks.medium || 
+                        volumeInfo.imageLinks.large ||
+                        'https://via.placeholder.com/128x192?text=Book+Cover';
+        }
+
+        // Ensure the image URL is valid
+        if (!coverImage || coverImage === 'https://via.placeholder.com/128x192?text=No+Cover') {
+            coverImage = 'https://via.placeholder.com/128x192?text=Book+Cover';
+        }
+
         return {
             id: item.id,
             title: volumeInfo.title || 'Untitled',
             authors: authors,
             description: volumeInfo.description || 'No description available.',
-            coverImage: volumeInfo.imageLinks?.thumbnail || 'https://via.placeholder.com/128x192?text=No+Cover',
+            coverImage: coverImage,
             averageRating: volumeInfo.averageRating || 0,
             publishedDate: volumeInfo.publishedDate || 'Unknown',
             genres: genres,
             pageCount: volumeInfo.pageCount || 0,
-            language: volumeInfo.language || 'en'
+            language: volumeInfo.language || 'en',
+            publisher: volumeInfo.publisher || 'Unknown',
+            isbn: volumeInfo.industryIdentifiers?.[0]?.identifier || null
         };
     }
 
