@@ -49,6 +49,14 @@ async function loadInitialBooks() {
         ui.showLoading();
         const books = await bookAPI.searchBooks('popular books');
         ui.displayBooks(books);
+        
+        // Add a test review for testing purposes
+        storageManager.addReview('test-book-id', {
+            rating: 5,
+            text: 'This is a test review to verify the review system is working correctly.',
+            date: new Date().toISOString()
+        });
+        console.log('Test review added to storage');
     } catch (error) {
         ui.showError('Failed to load initial books. Please try again later.');
     } finally {
@@ -92,6 +100,41 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+<<<<<<< HEAD
+=======
+    // Event delegation for review buttons (since they're created dynamically)
+    document.addEventListener('click', (e) => {
+        // Add review button
+        if (e.target.id === 'add-review' || e.target.closest('#add-review')) {
+            e.stopPropagation();
+            const bookId = e.target.closest('.book-details')?.dataset.bookId;
+            if (bookId) {
+                ui.showReviewForm(bookId);
+            }
+        }
+        
+        // View reviews button
+        if (e.target.id === 'view-reviews' || e.target.closest('#view-reviews')) {
+            e.stopPropagation();
+            const bookId = e.target.closest('.book-details')?.dataset.bookId;
+            if (bookId) {
+                ui.showReviews(bookId);
+            }
+        }
+        
+        // Test buttons
+        if (e.target.id === 'test-add-review') {
+            console.log('Test Add Review clicked');
+            ui.showReviewForm('test-book-id');
+        }
+        
+        if (e.target.id === 'test-view-reviews') {
+            console.log('Test View Reviews clicked');
+            ui.showReviews('test-book-id');
+        }
+    });
+
+>>>>>>> d2fde0ecf47ac302b19ce63dd709dd2d1a045744
     // Handle navigation
     document.querySelectorAll('.nav-links a').forEach(link => {
         link.addEventListener('click', (e) => {
@@ -137,17 +180,29 @@ async function handleSearch() {
         if (genre && genre !== 'all') {
             // Search with genre filter
             books = await bookAPI.searchBooks(query, genre);
+            console.log(`Searching for "${query}" in genre "${genre}"`);
         } else {
             // Search without genre filter
             books = await bookAPI.searchBooks(query);
+            console.log(`Searching for "${query}" in all genres`);
         }
 
         if (books.length === 0) {
-            ui.showError('No books found. Try a different search term or genre.');
+            if (genre && genre !== 'all') {
+                ui.showError(`No books found for "${query}" in the ${genre} genre. Try a different search term or genre.`);
+            } else {
+                ui.showError(`No books found for "${query}". Try a different search term.`);
+            }
         } else {
             ui.displayBooks(books);
+            // Show success message
+            const message = genre && genre !== 'all' 
+                ? `Found ${books.length} books for "${query}" in ${genre}`
+                : `Found ${books.length} books for "${query}"`;
+            ui.showSuccess(message);
         }
     } catch (error) {
+        console.error('Search error:', error);
         ui.showError('Failed to search books. Please try again later.');
     } finally {
         ui.hideLoading();
@@ -197,19 +252,29 @@ async function handleRandomBook() {
 
 // Sort Handler
 function handleSort() {
-    const sortBy = ui.sortSelect.value;
-    const books = Array.from(ui.booksContainer.children).map(card => ({
-        id: card.dataset.bookId,
-        title: card.querySelector('h3').textContent,
-        authors: card.querySelector('p').textContent.split(', '),
-        coverImage: card.querySelector('img').src,
-        averageRating: parseFloat(card.dataset.rating),
-        publishedDate: card.dataset.publishedDate,
-        genres: card.dataset.genres.split(',')
-    }));
+    try {
+        const sortBy = ui.sortSelect.value;
+        const books = Array.from(ui.booksContainer.children).map(card => {
+            const publishedDate = card.dataset.publishedDate;
+            const rating = card.dataset.rating;
+            
+            return {
+                id: card.dataset.bookId,
+                title: card.querySelector('h3').textContent,
+                authors: card.querySelector('p').textContent.split(', '),
+                coverImage: card.querySelector('img').src,
+                averageRating: parseFloat(rating) || 0,
+                publishedDate: publishedDate === 'Unknown' ? '1900-01-01' : publishedDate,
+                genres: card.dataset.genres ? card.dataset.genres.split(',') : []
+            };
+        });
 
-    const sortedBooks = ui.sortBooks(books, sortBy);
-    ui.displayBooks(sortedBooks);
+        const sortedBooks = ui.sortBooks(books, sortBy);
+        ui.displayBooks(sortedBooks);
+    } catch (error) {
+        console.error('Error in handleSort:', error);
+        ui.showError('Error sorting books. Please try again.');
+    }
 }
 
 // Error Handler
